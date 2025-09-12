@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { customerAPI } from "../../api/customers";
 import type { Customer } from "../../types";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "../../context/ToastContext";
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -14,6 +16,12 @@ export default function Customers() {
   // ricerca + ordinamento
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
+
+  // conferma eliminazione
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const { showToast } = useToast();
 
   // 🔹 caricamento dati dal backend
   useEffect(() => {
@@ -30,7 +38,10 @@ export default function Customers() {
   };
 
   const handleSave = async () => {
-    if (!formData.name) return alert("Il nome cliente è obbligatorio");
+    if (!formData.name) {
+      showToast("error", "Il nome cliente è obbligatorio ❌");
+      return;
+    }
 
     try {
       if (editingId) {
@@ -46,9 +57,10 @@ export default function Customers() {
       setFormData({});
       setEditingId(null);
       setShowForm(false);
+      showToast("success", "Cliente salvato con successo ✅");
     } catch (err) {
       console.error("❌ Errore salvataggio cliente:", err);
-      alert("Errore durante il salvataggio del cliente");
+      showToast("error", "Errore durante il salvataggio del cliente ❌");
     }
   };
 
@@ -58,14 +70,22 @@ export default function Customers() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Vuoi davvero eliminare questo cliente?")) return;
+  const handleDelete = (id: string) => {
+    setSelectedId(id);
+    setOpenConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedId) return;
     try {
-      await customerAPI.remove(id);
-      setCustomers(customers.filter((c) => c.id !== id));
+      await customerAPI.remove(selectedId);
+      setCustomers(customers.filter((c) => c.id !== selectedId));
+      showToast("success", "Cliente eliminato con successo ✅");
     } catch (err) {
       console.error("❌ Errore eliminazione cliente:", err);
-      alert("Errore durante l'eliminazione del cliente");
+      showToast("error", "Errore durante l'eliminazione del cliente ❌");
+    } finally {
+      setSelectedId(null);
     }
   };
 
@@ -276,6 +296,17 @@ export default function Customers() {
           </div>
         </div>
       )}
+
+      {/* Conferma eliminazione */}
+      <ConfirmDialog
+        open={openConfirm}
+        setOpen={setOpenConfirm}
+        title="Elimina cliente"
+        description="Sei sicuro di voler eliminare questo cliente? L'azione non può essere annullata."
+        confirmText="Elimina"
+        cancelText="Annulla"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

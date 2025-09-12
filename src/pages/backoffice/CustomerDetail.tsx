@@ -4,6 +4,8 @@ import { customerAPI } from "../../api/customers";
 import { jobOrderAPI } from "../../api/jobOrders";
 import { jobAPI } from "../../api/jobs";
 import type { Customer, JobOrder, Job } from "../../types";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "../../context/ToastContext";
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +21,12 @@ export default function CustomerDetail() {
   const [searchCode, setSearchCode] = useState("");
   const [searchAddress, setSearchAddress] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
+
+  // conferma eliminazione
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!id) return;
@@ -54,8 +62,12 @@ export default function CustomerDetail() {
   };
 
   const handleSave = async () => {
-    if (!formData.code || (!formData.location?.address && !formData.location?.mapsUrl)) {
-      return alert("La commessa deve avere un indirizzo o un link Google Maps");
+    if (
+      !formData.code ||
+      (!formData.location?.address && !formData.location?.mapsUrl)
+    ) {
+      showToast("error", "La commessa deve avere un indirizzo o un link Google Maps ❌");
+      return;
     }
 
     try {
@@ -70,6 +82,7 @@ export default function CustomerDetail() {
           notes: formData.notes,
         });
         setOrders(orders.map((o) => (o.id === editingId ? updated : o)));
+        showToast("success", "Commessa aggiornata con successo ✅");
       } else {
         const created = await jobOrderAPI.create({
           code: formData.code!,
@@ -81,6 +94,7 @@ export default function CustomerDetail() {
           notes: formData.notes,
         });
         setOrders([...orders, created]);
+        showToast("success", "Commessa creata con successo ✅");
       }
 
       setFormData({});
@@ -88,7 +102,7 @@ export default function CustomerDetail() {
       setShowForm(false);
     } catch (err) {
       console.error("❌ Errore salvataggio commessa:", err);
-      alert("Errore durante il salvataggio della commessa");
+      showToast("error", "Errore durante il salvataggio della commessa ❌");
     }
   };
 
@@ -98,38 +112,56 @@ export default function CustomerDetail() {
     setShowForm(true);
   };
 
-  const handleDelete = async (orderId: string) => {
+  const handleDelete = (orderId: string) => {
     const hasJobs = jobs.some((j: Job) => j.jobOrderId === orderId);
     if (hasJobs) {
-      return alert("Non puoi eliminare questa commessa perché ha interventi collegati");
+      showToast("error", "Non puoi eliminare questa commessa perché ha interventi collegati ❌");
+      return;
     }
+    setOrderToDelete(orderId);
+    setOpenConfirm(true);
+  };
 
-    if (!confirm("Vuoi davvero eliminare questa commessa?")) return;
+  const confirmDelete = async () => {
+    if (!orderToDelete) return;
     try {
-      await jobOrderAPI.remove(orderId);
-      setOrders(orders.filter((o) => o.id !== orderId));
+      await jobOrderAPI.remove(orderToDelete);
+      setOrders(orders.filter((o) => o.id !== orderToDelete));
+      showToast("success", "Commessa eliminata con successo ✅");
     } catch (err) {
       console.error("❌ Errore eliminazione commessa:", err);
-      alert("Errore durante l'eliminazione della commessa");
+      showToast("error", "Errore durante l'eliminazione della commessa ❌");
+    } finally {
+      setOrderToDelete(null);
     }
   };
 
   const filteredOrders = orders
     .filter((o) => o.code.toLowerCase().includes(searchCode.toLowerCase()))
     .filter((o) =>
-      (o.location.address ?? "").toLowerCase().includes(searchAddress.toLowerCase())
+      (o.location.address ?? "")
+        .toLowerCase()
+        .includes(searchAddress.toLowerCase())
     )
-    .sort((a, b) => (sortAsc ? a.code.localeCompare(b.code) : b.code.localeCompare(a.code)));
+    .sort((a, b) =>
+      sortAsc ? a.code.localeCompare(b.code) : b.code.localeCompare(a.code)
+    );
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* Intestazione cliente */}
       <div className="bg-white shadow rounded-lg p-6">
         <h1 className="text-2xl font-bold mb-2">{customer.name}</h1>
-        <p><strong>Telefono:</strong> {customer.phone ?? "-"}</p>
-        <p><strong>Email:</strong> {customer.email ?? "-"}</p>
+        <p>
+          <strong>Telefono:</strong> {customer.phone ?? "-"}
+        </p>
+        <p>
+          <strong>Email:</strong> {customer.email ?? "-"}
+        </p>
         {customer.notes && (
-          <p className="mt-2 text-gray-600"><strong>Note:</strong> {customer.notes}</p>
+          <p className="mt-2 text-gray-600">
+            <strong>Note:</strong> {customer.notes}
+          </p>
         )}
       </div>
 
@@ -240,7 +272,10 @@ export default function CustomerDetail() {
             <p className="text-gray-500">Nessuna commessa trovata</p>
           ) : (
             filteredOrders.map((o) => (
-              <div key={o.id} className="border rounded-lg shadow-sm p-3 bg-white">
+              <div
+                key={o.id}
+                className="border rounded-lg shadow-sm p-3 bg-white"
+              >
                 <div className="font-bold text-lg">{o.code}</div>
                 <div className="text-sm text-gray-600 mt-1">
                   📍{" "}
@@ -260,7 +295,9 @@ export default function CustomerDetail() {
                   )}
                 </div>
                 {o.notes && (
-                  <div className="text-sm mt-1 text-gray-700">📝 {o.notes}</div>
+                  <div className="text-sm mt-1 text-gray-700">
+                    📝 {o.notes}
+                  </div>
                 )}
                 <div className="flex gap-2 mt-3">
                   <Link
@@ -349,6 +386,17 @@ export default function CustomerDetail() {
           </div>
         </div>
       )}
+
+      {/* Conferma eliminazione */}
+      <ConfirmDialog
+        open={openConfirm}
+        setOpen={setOpenConfirm}
+        title="Elimina commessa"
+        description="Sei sicuro di voler eliminare questa commessa? L'azione non può essere annullata."
+        confirmText="Elimina"
+        cancelText="Annulla"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

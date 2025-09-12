@@ -4,6 +4,8 @@ import { jobOrderAPI } from "../../api/jobOrders";
 import { customerAPI } from "../../api/customers";
 import { jobAPI } from "../../api/jobs";
 import type { JobOrder, Customer, Job } from "../../types";
+import { useToast } from "../../context/ToastContext";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function Orders() {
   const [orders, setOrders] = useState<JobOrder[]>([]);
@@ -20,6 +22,12 @@ export default function Orders() {
   const [searchCustomer, setSearchCustomer] = useState("");
   const [searchAddress, setSearchAddress] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
+
+  // stato per confirm dialog
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  const { showToast } = useToast();
 
   useEffect(() => {
     jobOrderAPI.list().then(setOrders);
@@ -47,9 +55,11 @@ export default function Orders() {
       !selectedCustomer ||
       (!formData.location?.address && !formData.location?.mapsUrl)
     ) {
-      return alert(
-        "Numero commessa, cliente e almeno un indirizzo o link Maps sono obbligatori"
+      showToast(
+        "error",
+        "Numero commessa, cliente e almeno un indirizzo o link Maps sono obbligatori ❌"
       );
+      return;
     }
 
     if (editingId) {
@@ -69,6 +79,7 @@ export default function Orders() {
             : o
         )
       );
+      showToast("success", "Commessa aggiornata ✅");
     } else {
       const newOrder: JobOrder = {
         id: `o${Date.now()}`,
@@ -83,6 +94,7 @@ export default function Orders() {
         createdAt: new Date().toISOString(),
       };
       setOrders([...orders, newOrder]);
+      showToast("success", "Commessa creata ✅");
     }
 
     setFormData({});
@@ -105,13 +117,21 @@ export default function Orders() {
   const handleDelete = (id: string) => {
     const hasJobs = jobs.some((j: Job) => j.jobOrderId === id);
     if (hasJobs) {
-      return alert(
-        "Non puoi eliminare questa commessa perché ha interventi collegati"
+      showToast(
+        "error",
+        "Non puoi eliminare questa commessa perché ha interventi collegati ❌"
       );
+      return;
     }
-    if (confirm("Vuoi davvero eliminare questa commessa?")) {
-      setOrders(orders.filter((o) => o.id !== id));
-    }
+    setSelectedOrderId(id);
+    setOpenConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (!selectedOrderId) return;
+    setOrders(orders.filter((o) => o.id !== selectedOrderId));
+    showToast("success", "Commessa eliminata ✅");
+    setSelectedOrderId(null);
   };
 
   const getCustomerName = (id: string) =>
@@ -143,7 +163,6 @@ export default function Orders() {
             setShowForm(true);
           }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-
         >
           + Nuova Commessa
         </button>
@@ -421,6 +440,17 @@ export default function Orders() {
           </div>
         </div>
       )}
+
+      {/* Conferma eliminazione */}
+      <ConfirmDialog
+        open={openConfirm}
+        setOpen={setOpenConfirm}
+        title="Elimina commessa"
+        description="Sei sicuro di voler eliminare questa commessa? L'azione non può essere annullata."
+        confirmText="Elimina"
+        cancelText="Annulla"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

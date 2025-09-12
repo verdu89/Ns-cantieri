@@ -6,7 +6,6 @@ import { jobAPI } from "../../api/jobs";
 import { workerAPI } from "../../api/workers";
 import { documentAPI } from "../../api/documentAPI";
 import { supabase } from "../../supabaseClient";
-import Toast from "@/pages/job/Toast";
 
 import type {
   JobOrder,
@@ -18,6 +17,8 @@ import type {
 } from "../../types";
 import { formatDocumento } from "../../utils/documenti";
 import { STATUS_CONFIG } from "@/config/statusConfig";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "../../context/ToastContext";
 
 // 🔹 Per creare un job
 type JobCreate = Omit<
@@ -25,30 +26,23 @@ type JobCreate = Omit<
   "id" | "events" | "customer" | "team" | "payments" | "docs"
 >;
 
-/** ========= Stato visuale (NON scrive su DB) =========
- *  - Se il DB ha già "in_ritardo", lo mostriamo così com'è
- *  - Altrimenti, se in_corso ma oltre l'orario programmato → mostriamo "in_ritardo"
- *  - Se completato/da_completare/annullato → mostriamo quello
- *  - Se senza data o senza squadra → in_attesa_programmazione
- *  - Se ha data futura e squadra → assegnato
- *  - Se ha passato l'orario ed è assegnato → in_corso (la API promuoverà poi a in_ritardo se serve)
- */
-function getEffectiveStatus(job: Pick<Job, "status" | "plannedDate" | "assignedWorkers">): Job["status"] {
-  // rispetta DB se ha già in_ritardo
+/** ========= Stato visuale (NON scrive su DB) ========= */
+function getEffectiveStatus(
+  job: Pick<Job, "status" | "plannedDate" | "assignedWorkers">
+): Job["status"] {
   if (job.status === "in_ritardo") return "in_ritardo";
   if (["completato", "da_completare", "annullato"].includes(job.status)) {
     return job.status as Job["status"];
   }
-  const hasTeam = Array.isArray(job.assignedWorkers) && job.assignedWorkers.length > 0;
+  const hasTeam =
+    Array.isArray(job.assignedWorkers) && job.assignedWorkers.length > 0;
   if (!job.plannedDate || !hasTeam) return "in_attesa_programmazione";
 
   const planned = new Date(job.plannedDate);
   const now = new Date();
 
   if (now < planned) return "assegnato";
-  // ora di inizio raggiunta → in_corso (visivo). Se poi passa oltre e la API scrive in_ritardo, al prossimo reload lo vediamo dal DB
   if (now >= planned) {
-    // se DB diceva in_corso ma è oltre l'orario, mostriamo visivamente in_ritardo (senza scrivere)
     if (job.status === "in_corso" && planned.getTime() < now.getTime()) {
       return "in_ritardo";
     }
@@ -73,20 +67,11 @@ export default function OrderDetail() {
 
   const [loadingDocs, setLoadingDocs] = useState(false);
 
-  const [toast, setToast] = useState<{
-    show: boolean;
-    type: "success" | "error";
-    message: string;
-  }>({
-    show: false,
-    type: "success",
-    message: "",
-  });
+  // conferma eliminazione
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<string | null>(null);
 
-  const showToast = (type: "success" | "error", message: string) => {
-    setToast({ show: true, type, message });
-    window.setTimeout(() => setToast((t) => ({ ...t, show: false })), 2500);
-  };
+  const { showToast } = useToast();
 
   // 🔹 carica dati commessa
   useEffect(() => {
@@ -102,7 +87,7 @@ export default function OrderDetail() {
       const c = await customerAPI.getById(o.customerId);
       setCustomer(c ?? null);
 
-      const j = await jobAPI.listByOrder(o.id); // API che fa anche auto-update stati
+      const j = await jobAPI.listByOrder(o.id);
       setJobs(j ?? []);
 
       const docs = await documentAPI.listByOrder(o.id);
@@ -124,13 +109,17 @@ export default function OrderDetail() {
   // 🔹 salva note commessa
   const handleSaveNotes = async () => {
     if (!order) return;
-    const updated: JobOrder = { ...order, notes };
-    await jobOrderAPI.update(order.id, updated);
-    setOrder(updated);
-    showToast("success", "📝 Note commessa aggiornate con successo");
+    try {
+      const updated: JobOrder = { ...order, notes };
+      await jobOrderAPI.update(order.id, updated);
+      setOrder(updated);
+      showToast("success", "📝 Note commessa aggiornate con successo");
+    } catch (err) {
+      console.error("Errore aggiornamento note:", err);
+      showToast("error", "Errore durante l'aggiornamento delle note ❌");
+    }
   };
 
-  // 🔹 helper: ricarica i job della commessa (per vedere subito lo stato aggiornato dalla API)
   const reloadJobs = async () => {
     if (!order) return;
     const fresh = await jobAPI.listByOrder(order.id);
@@ -140,80 +129,89 @@ export default function OrderDetail() {
   // 🔹 salvataggio intervento
   const handleSaveJob = async () => {
     if (!formData.title) {
-      return alert("La tipologia intervento è obbligatoria");
+      return showToast("error", "La tipologia intervento è obbligatoria ❌");
     }
 
-    if (editingId) {
-      // EDIT: NON ricalcolo forzatamente lo stato; salvo solo i campi cambiati
-      const payload: Partial<Job> = {
-        title: formData.title,
-        plannedDate: (formData.plannedDate as string | null) ?? null,
-        assignedWorkers: formData.assignedWorkers ?? [],
-        notes: formData.notes ?? "",
-      };
+    try {
+      if (editingId) {
+        const payload: Partial<Job> = {
+          title: formData.title,
+          plannedDate: (formData.plannedDate as string | null) ?? null,
+          assignedWorkers: formData.assignedWorkers ?? [],
+          notes: formData.notes ?? "",
+        };
 
-      // Se l'utente ha cambiato manualmente lo stato nella UI (se c'è una select altrove), allora propagalo
-      if (typeof formData.status === "string") {
-        payload.status = formData.status as Job["status"];
+        if (typeof formData.status === "string") {
+          payload.status = formData.status as Job["status"];
+        }
+
+        const updated = await jobAPI.update(editingId, payload);
+        if (updated) {
+          showToast("success", "Intervento aggiornato ✅");
+          await reloadJobs();
+        }
+      } else {
+        const newJobPayload: JobCreate = {
+          jobOrderId: order.id,
+          createdAt: new Date().toISOString(),
+          plannedDate: (formData.plannedDate as string) || null,
+          title: formData.title!,
+          notes: formData.notes ?? "",
+          assignedWorkers: formData.assignedWorkers ?? [],
+          status: "in_attesa_programmazione",
+          files: [],
+          location: order.location ?? {},
+          customer: customer ?? { id: "", name: "" },
+          team: [],
+          payments: [],
+          docs: [],
+          events: [],
+        } as unknown as JobCreate;
+
+        const created = await jobAPI.create(newJobPayload);
+        if (!created) {
+          showToast("error", "Errore durante il salvataggio dell'intervento ❌");
+          return;
+        }
+        showToast("success", "Intervento creato ✅");
+        await reloadJobs();
       }
 
-      const updated = await jobAPI.update(editingId, payload);
-      if (updated) {
-        showToast("success", "Intervento aggiornato ✅");
-        await reloadJobs(); // vedi subito eventuale auto-aggiornamento stato
-      }
-    } else {
-      // CREATE: stato iniziale calcolato "soft" (non in_ritardo), poi ci pensa la API a promuovere
-      const newJobPayload: JobCreate = {
-        jobOrderId: order.id,
-        createdAt: new Date().toISOString(),
-        plannedDate: (formData.plannedDate as string) || null,
-        title: formData.title!,
-        notes: formData.notes ?? "",
-        assignedWorkers: formData.assignedWorkers ?? [],
-        status: "in_attesa_programmazione",
-        files: [],
-        location: order.location ?? {},
-        customer: customer ?? {
-          id: "",
-          name: "",
-        }, // non usato in insert, ma type-safe
-        team: [], // non usato in insert
-        payments: [], // non usato in insert
-        docs: [], // non usato in insert
-        events: [], // non usato in insert
-      } as unknown as JobCreate;
-
-      const created = await jobAPI.create(newJobPayload);
-      if (!created) {
-        alert("Errore durante il salvataggio dell'intervento ❌");
-        return;
-      }
-      showToast("success", "Intervento creato ✅");
-      await reloadJobs();
+      setFormData({});
+      setEditingId(null);
+      setShowForm(false);
+    } catch (err) {
+      console.error("Errore salvataggio intervento:", err);
+      showToast("error", "Errore durante il salvataggio dell'intervento ❌");
     }
-
-    setFormData({});
-    setEditingId(null);
-    setShowForm(false);
   };
 
-  // 🔹 modifica intervento
   const handleEdit = (job: Job) => {
     setFormData(job);
     setEditingId(job.id);
     setShowForm(true);
   };
 
-  // 🔹 elimina intervento
-  const handleDelete = async (jobId: string) => {
-    if (!confirm("Vuoi davvero eliminare questo intervento?")) return;
-    await jobAPI.remove(jobId);
-    showToast("success", "Intervento eliminato 🗑️");
-    await reloadJobs();
+  // 🔹 elimina intervento (apre dialog)
+  const handleDelete = (jobId: string) => {
+    setJobToDelete(jobId);
+    setOpenConfirm(true);
   };
 
-  // 🔹 allegati
+  const confirmDelete = async () => {
+    if (!jobToDelete) return;
+    try {
+      await jobAPI.remove(jobToDelete);
+      showToast("success", "Intervento eliminato 🗑️");
+      await reloadJobs();
+    } catch (err) {
+      console.error("Errore eliminazione intervento:", err);
+      showToast("error", "Errore durante l'eliminazione dell'intervento ❌");
+    } finally {
+      setJobToDelete(null);
+    }
+  };
+
   const getStoragePath = (fileUrl: string): string => {
     const url = new URL(fileUrl);
     return decodeURIComponent(url.pathname.split("/").slice(3).join("/"));
@@ -251,10 +249,10 @@ export default function OrderDetail() {
       showToast("success", `📤 Caricati ${files.length} file correttamente`);
     } catch (err) {
       console.error("Errore upload file:", err);
-      showToast("error", "Errore durante il caricamento dei file");
+      showToast("error", "Errore durante il caricamento dei file ❌");
     } finally {
       setLoadingDocs(false);
-      e.target.value = ""; // reset per permettere subito un nuovo upload
+      e.target.value = "";
     }
   };
 
@@ -273,31 +271,33 @@ export default function OrderDetail() {
 
       const docs = await documentAPI.listByOrder(order.id);
       setDocumenti(docs);
+      showToast("success", "File eliminato 🗑️");
     } catch (err) {
       console.error("Errore eliminazione file:", err);
-      alert("Errore durante l'eliminazione del file");
+      showToast("error", "Errore durante l'eliminazione del file ❌");
     } finally {
       setLoadingDocs(false);
     }
   };
 
-  // 🔹 pagamenti aggregati
   const allPayments: Payment[] = jobs.flatMap((j) =>
     (j.payments ?? []).map((p) => ({ ...p, jobId: j.id }))
   );
 
-  const totalExpected = allPayments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+  const totalExpected = allPayments.reduce(
+    (sum, p) => sum + (p.amount ?? 0),
+    0
+  );
 
   const totalCollected = allPayments.reduce((sum, p) => {
-    if (p.collected) return sum + (p.amount ?? 0);               // incasso totale
-    if ((p as any).partial) return sum + ((p as any).collectedAmount ?? 0); // incasso parziale
-    return sum; 
+    if (p.collected) return sum + (p.amount ?? 0);
+    if ((p as any).partial)
+      return sum + ((p as any).collectedAmount ?? 0);
+    return sum;
   }, 0);
 
   const totalPending = totalExpected - totalCollected;
 
-
-  // Ordina dal più recente al più vecchio
   const sortedJobs = [...jobs].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt)
   );
@@ -371,29 +371,15 @@ export default function OrderDetail() {
             disabled={loadingDocs}
           />
           <span className="text-sm">
-            {loadingDocs ? "⏳ Caricamento in corso..." : "Trascina file o clicca per caricare"}
+            {loadingDocs
+              ? "⏳ Caricamento in corso..."
+              : "Trascina file o clicca per caricare"}
           </span>
         </label>
 
         {loadingDocs && (
           <div className="flex items-center gap-2 text-blue-600 text-sm mt-3">
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
-              />
-            </svg>
-            Caricamento in corso...
+            ⏳ Caricamento in corso...
           </div>
         )}
 
@@ -404,7 +390,10 @@ export default function OrderDetail() {
             {documenti.map((doc) => {
               const d = formatDocumento(doc);
               return (
-                <li key={d.id} className="flex justify-between items-center py-3">
+                <li
+                  key={d.id}
+                  className="flex justify-between items-center py-3"
+                >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{d.icon}</span>
                     <div>
@@ -416,7 +405,9 @@ export default function OrderDetail() {
                       >
                         {d.fileName}
                       </a>
-                      <div className="text-xs text-gray-400">{d.formattedDate}</div>
+                      <div className="text-xs text-gray-400">
+                        {d.formattedDate}
+                      </div>
                     </div>
                   </div>
                   <button
@@ -430,13 +421,13 @@ export default function OrderDetail() {
             })}
           </ul>
         )}
-
-        {toast.show && <Toast toast={toast} />}
       </div>
 
       {/* Pagamenti */}
       <div className="bg-white shadow rounded-lg p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-bold mb-2">Riepilogo pagamenti</h2>
+        <h2 className="text-lg md:text-xl font-bold mb-2">
+          Riepilogo pagamenti
+        </h2>
         {allPayments.length === 0 ? (
           <p className="text-gray-500">Nessun pagamento registrato</p>
         ) : (
@@ -451,7 +442,11 @@ export default function OrderDetail() {
                   >
                     <span className="text-sm md:text-base">
                       {p.label} — {p.amount.toFixed(2)} € —{" "}
-                      <span className={p.collected ? "text-green-600" : "text-red-600"}>
+                      <span
+                        className={
+                          p.collected ? "text-green-600" : "text-red-600"
+                        }
+                      >
                         {p.collected ? "Incassato" : "Da incassare"}
                       </span>{" "}
                       {job && (
@@ -465,7 +460,6 @@ export default function OrderDetail() {
               })}
             </ul>
 
-            {/* Totali */}
             <div className="border-t pt-3 text-sm md:text-base space-y-1">
               <div>
                 <strong>Totale previsto:</strong> {totalExpected.toFixed(2)} €
@@ -473,7 +467,13 @@ export default function OrderDetail() {
               <div className="text-green-600">
                 <strong>Totale incassato:</strong> {totalCollected.toFixed(2)} €
               </div>
-              <div className={totalPending > 0 ? "text-red-700 font-bold" : "text-green-700 font-bold"}>
+              <div
+                className={
+                  totalPending > 0
+                    ? "text-red-700 font-bold"
+                    : "text-green-700 font-bold"
+                }
+              >
                 <strong>Residuo:</strong> {totalPending.toFixed(2)} €
               </div>
             </div>
@@ -499,43 +499,64 @@ export default function OrderDetail() {
           </button>
         </div>
 
-        {/* Card view mobile */}
+        {/* Mobile */}
         <div className="space-y-4 md:hidden">
           {sortedJobs.map((j) => {
             const st = getEffectiveStatus(j);
             const cfg = STATUS_CONFIG[st];
-            const isLateRow =
-              j.plannedDate && st === "in_ritardo";
+            const isLateRow = j.plannedDate && st === "in_ritardo";
 
             return (
               <div
                 key={j.id}
-                className={`border rounded-lg p-4 shadow-sm bg-white ${isLateRow ? "ring-1 ring-red-300" : ""}`}
+                className={`border rounded-lg p-4 shadow-sm bg-white ${
+                  isLateRow ? "ring-1 ring-red-300" : ""
+                }`}
               >
                 <div className="text-sm text-gray-500">
-                  📅 {j.plannedDate ? new Date(j.plannedDate).toLocaleString("it-IT") : "-"}
+                  📅{" "}
+                  {j.plannedDate
+                    ? new Date(j.plannedDate).toLocaleString("it-IT")
+                    : "-"}
                 </div>
                 <div className="font-semibold mt-1">{j.title}</div>
                 <div className="text-sm mt-1">
                   👷{" "}
                   {j.assignedWorkers?.length
-                    ? j.assignedWorkers.map((wid) => workers.find((w) => w.id === wid)?.name).join(", ")
+                    ? j.assignedWorkers
+                        .map((wid) => workers.find((w) => w.id === wid)?.name)
+                        .join(", ")
                     : "-"}
                 </div>
                 <div className="mt-2">
-                  <span className={`px-2 py-1 rounded text-xs ${cfg?.color ?? "bg-gray-200 text-gray-700"}`}>
+                  <span
+                    className={`px-2 py-1 rounded text-xs ${
+                      cfg?.color ?? "bg-gray-200 text-gray-700"
+                    }`}
+                  >
                     {cfg?.icon} {cfg?.label ?? st}
                   </span>
                 </div>
-                <div className="text-sm text-gray-600 mt-1 truncate">📝 {j.notes || "-"}</div>
+                <div className="text-sm text-gray-600 mt-1 truncate">
+                  📝 {j.notes || "-"}
+                </div>
                 <div className="flex gap-2 mt-3">
-                  <Link to={`/backoffice/jobs/${j.id}`} className="flex-1 px-2 py-1 bg-blue-600 text-white rounded text-center">
+                  <Link
+                    to={`/backoffice/jobs/${j.id}`}
+                    className="flex-1 px-2 py-1 bg-blue-600 text-white rounded text-center"
+                  >
                     Apri
                   </Link>
-                  <button onClick={() => handleEdit(j)} className="flex-1 px-2 py-1 bg-yellow-500 text-white rounded">
+                  <button
+                    onClick={() => handleEdit(j)}
+                    className="flex-1 px-2 py-1 bg-yellow-500 text-white rounded"
+                  >
                     ✏️
                   </button>
-                  <button onClick={() => handleDelete(j.id)} className="flex-1 px-2 py-1 bg-red-600 text-white rounded">
+                  <button
+                    onClick={() => handleDelete(j.id)}
+                    className="flex-1 px-2 py-1 bg-red-600 text-white rounded"
+                  >
                     🗑️
                   </button>
                 </div>
@@ -544,7 +565,7 @@ export default function OrderDetail() {
           })}
         </div>
 
-        {/* Tabella desktop */}
+        {/* Desktop */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full border-collapse bg-white">
             <thead className="bg-gray-100 text-left">
@@ -561,34 +582,36 @@ export default function OrderDetail() {
               {sortedJobs.map((j) => {
                 const st = getEffectiveStatus(j);
                 const cfg = STATUS_CONFIG[st];
-                const isTodayOrTomorrow =
-                  j.plannedDate &&
-                  (() => {
-                    const planned = new Date(j.plannedDate);
-                    const base = new Date();
-                    base.setHours(0, 0, 0, 0);
-                    const diffDays = (planned.getTime() - base.getTime()) / (1000 * 60 * 60 * 24);
-                    return diffDays >= 0 && diffDays < 2;
-                  })();
-
                 const isLateRow = j.plannedDate && st === "in_ritardo";
 
                 return (
                   <tr
                     key={j.id}
-                    className={`border-t ${isLateRow ? "bg-red-50" : isTodayOrTomorrow ? "bg-yellow-50" : ""}`}
+                    className={`border-t ${
+                      isLateRow ? "bg-red-50" : ""
+                    }`}
                   >
                     <td className="p-2">
-                      {j.plannedDate ? new Date(j.plannedDate).toLocaleString("it-IT") : "-"}
+                      {j.plannedDate
+                        ? new Date(j.plannedDate).toLocaleString("it-IT")
+                        : "-"}
                     </td>
                     <td className="p-2">{j.title}</td>
                     <td className="p-2">
                       {j.assignedWorkers?.length
-                        ? j.assignedWorkers.map((wid) => workers.find((w) => w.id === wid)?.name).join(", ")
+                        ? j.assignedWorkers
+                            .map(
+                              (wid) => workers.find((w) => w.id === wid)?.name
+                            )
+                            .join(", ")
                         : "-"}
                     </td>
                     <td className="p-2">
-                      <span className={`px-2 py-1 rounded text-xs ${cfg?.color ?? "bg-gray-200 text-gray-700"}`}>
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          cfg?.color ?? "bg-gray-200 text-gray-700"
+                        }`}
+                      >
                         {cfg?.icon} {cfg?.label ?? st}
                       </span>
                     </td>
@@ -596,13 +619,22 @@ export default function OrderDetail() {
                       {j.notes || "-"}
                     </td>
                     <td className="p-2 space-x-2">
-                      <Link to={`/backoffice/jobs/${j.id}`} className="px-2 py-1 bg-blue-600 text-white rounded">
+                      <Link
+                        to={`/backoffice/jobs/${j.id}`}
+                        className="px-2 py-1 bg-blue-600 text-white rounded"
+                      >
                         Apri
                       </Link>
-                      <button onClick={() => handleEdit(j)} className="px-2 py-1 bg-yellow-500 text-white rounded">
+                      <button
+                        onClick={() => handleEdit(j)}
+                        className="px-2 py-1 bg-yellow-500 text-white rounded"
+                      >
                         ✏️
                       </button>
-                      <button onClick={() => handleDelete(j.id)} className="px-2 py-1 bg-red-600 text-white rounded">
+                      <button
+                        onClick={() => handleDelete(j.id)}
+                        className="px-2 py-1 bg-red-600 text-white rounded"
+                      >
                         🗑️
                       </button>
                     </td>
@@ -627,16 +659,22 @@ export default function OrderDetail() {
               name="title"
               placeholder="Tipologia intervento *"
               value={formData.title ?? ""}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
               className="w-full p-2 border rounded mb-2"
             />
 
-            <label className="block font-semibold mb-1">Data e ora programmate</label>
+            <label className="block font-semibold mb-1">
+              Data e ora programmate
+            </label>
             <input
               type="datetime-local"
               name="plannedDate"
               value={(formData.plannedDate as string) ?? ""}
-              onChange={(e) => setFormData({ ...formData, plannedDate: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, plannedDate: e.target.value })
+              }
               className="w-full p-2 border rounded mb-2"
             />
 
@@ -666,7 +704,9 @@ export default function OrderDetail() {
               name="notes"
               placeholder="Note interne"
               value={formData.notes ?? ""}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
               className="w-full p-2 border rounded mb-2"
             />
 
@@ -681,13 +721,27 @@ export default function OrderDetail() {
               >
                 Annulla
               </button>
-              <button onClick={handleSaveJob} className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg">
+              <button
+                onClick={handleSaveJob}
+                className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg"
+              >
                 Salva
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Conferma eliminazione intervento */}
+      <ConfirmDialog
+        open={openConfirm}
+        setOpen={setOpenConfirm}
+        title="Elimina intervento"
+        description="Sei sicuro di voler eliminare questo intervento? L'azione non può essere annullata."
+        confirmText="Elimina"
+        cancelText="Annulla"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
