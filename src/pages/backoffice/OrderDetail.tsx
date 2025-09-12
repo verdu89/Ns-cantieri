@@ -1,0 +1,693 @@
+import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { jobOrderAPI } from "../../api/jobOrders";
+import { customerAPI } from "../../api/customers";
+import { jobAPI } from "../../api/jobs";
+import { workerAPI } from "../../api/workers";
+import { documentAPI } from "../../api/documentAPI";
+import { supabase } from "../../supabaseClient";
+import Toast from "@/pages/job/Toast";
+
+import type {
+  JobOrder,
+  Customer,
+  Job,
+  Documento,
+  Payment,
+  Worker,
+} from "../../types";
+import { formatDocumento } from "../../utils/documenti";
+import { STATUS_CONFIG } from "@/config/statusConfig";
+
+// 🔹 Per creare un job
+type JobCreate = Omit<
+  Job,
+  "id" | "events" | "customer" | "team" | "payments" | "docs"
+>;
+
+/** ========= Stato visuale (NON scrive su DB) =========
+ *  - Se il DB ha già "in_ritardo", lo mostriamo così com'è
+ *  - Altrimenti, se in_corso ma oltre l'orario programmato → mostriamo "in_ritardo"
+ *  - Se completato/da_completare/annullato → mostriamo quello
+ *  - Se senza data o senza squadra → in_attesa_programmazione
+ *  - Se ha data futura e squadra → assegnato
+ *  - Se ha passato l'orario ed è assegnato → in_corso (la API promuoverà poi a in_ritardo se serve)
+ */
+function getEffectiveStatus(job: Pick<Job, "status" | "plannedDate" | "assignedWorkers">): Job["status"] {
+  // rispetta DB se ha già in_ritardo
+  if (job.status === "in_ritardo") return "in_ritardo";
+  if (["completato", "da_completare", "annullato"].includes(job.status)) {
+    return job.status as Job["status"];
+  }
+  const hasTeam = Array.isArray(job.assignedWorkers) && job.assignedWorkers.length > 0;
+  if (!job.plannedDate || !hasTeam) return "in_attesa_programmazione";
+
+  const planned = new Date(job.plannedDate);
+  const now = new Date();
+
+  if (now < planned) return "assegnato";
+  // ora di inizio raggiunta → in_corso (visivo). Se poi passa oltre e la API scrive in_ritardo, al prossimo reload lo vediamo dal DB
+  if (now >= planned) {
+    // se DB diceva in_corso ma è oltre l'orario, mostriamo visivamente in_ritardo (senza scrivere)
+    if (job.status === "in_corso" && planned.getTime() < now.getTime()) {
+      return "in_ritardo";
+    }
+    return "in_corso";
+  }
+  return job.status;
+}
+
+export default function OrderDetail() {
+  const { id } = useParams<{ id: string }>();
+
+  const [order, setOrder] = useState<JobOrder | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [documenti, setDocumenti] = useState<Documento[]>([]);
+  const [notes, setNotes] = useState("");
+
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState<Partial<Job>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [loadingDocs, setLoadingDocs] = useState(false);
+
+  const [toast, setToast] = useState<{
+    show: boolean;
+    type: "success" | "error";
+    message: string;
+  }>({
+    show: false,
+    type: "success",
+    message: "",
+  });
+
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ show: true, type, message });
+    window.setTimeout(() => setToast((t) => ({ ...t, show: false })), 2500);
+  };
+
+  // 🔹 carica dati commessa
+  useEffect(() => {
+    if (!id) return;
+
+    async function loadData() {
+      const o = await jobOrderAPI.getById(id as string);
+      if (!o) return;
+
+      setOrder(o);
+      setNotes(o.notes ?? "");
+
+      const c = await customerAPI.getById(o.customerId);
+      setCustomer(c ?? null);
+
+      const j = await jobAPI.listByOrder(o.id); // API che fa anche auto-update stati
+      setJobs(j ?? []);
+
+      const docs = await documentAPI.listByOrder(o.id);
+      setDocumenti(docs ?? []);
+    }
+
+    loadData();
+  }, [id]);
+
+  // 🔹 carica workers
+  useEffect(() => {
+    workerAPI.list().then((w) => setWorkers(w ?? []));
+  }, []);
+
+  if (!order) {
+    return <div className="p-4 md:p-6 text-red-600">Commessa non trovata</div>;
+  }
+
+  // 🔹 salva note commessa
+  const handleSaveNotes = async () => {
+    if (!order) return;
+    const updated: JobOrder = { ...order, notes };
+    await jobOrderAPI.update(order.id, updated);
+    setOrder(updated);
+    showToast("success", "📝 Note commessa aggiornate con successo");
+  };
+
+  // 🔹 helper: ricarica i job della commessa (per vedere subito lo stato aggiornato dalla API)
+  const reloadJobs = async () => {
+    if (!order) return;
+    const fresh = await jobAPI.listByOrder(order.id);
+    setJobs(fresh ?? []);
+  };
+
+  // 🔹 salvataggio intervento
+  const handleSaveJob = async () => {
+    if (!formData.title) {
+      return alert("La tipologia intervento è obbligatoria");
+    }
+
+    if (editingId) {
+      // EDIT: NON ricalcolo forzatamente lo stato; salvo solo i campi cambiati
+      const payload: Partial<Job> = {
+        title: formData.title,
+        plannedDate: (formData.plannedDate as string | null) ?? null,
+        assignedWorkers: formData.assignedWorkers ?? [],
+        notes: formData.notes ?? "",
+      };
+
+      // Se l'utente ha cambiato manualmente lo stato nella UI (se c'è una select altrove), allora propagalo
+      if (typeof formData.status === "string") {
+        payload.status = formData.status as Job["status"];
+      }
+
+      const updated = await jobAPI.update(editingId, payload);
+      if (updated) {
+        showToast("success", "Intervento aggiornato ✅");
+        await reloadJobs(); // vedi subito eventuale auto-aggiornamento stato
+      }
+    } else {
+      // CREATE: stato iniziale calcolato "soft" (non in_ritardo), poi ci pensa la API a promuovere
+      const newJobPayload: JobCreate = {
+        jobOrderId: order.id,
+        createdAt: new Date().toISOString(),
+        plannedDate: (formData.plannedDate as string) || null,
+        title: formData.title!,
+        notes: formData.notes ?? "",
+        assignedWorkers: formData.assignedWorkers ?? [],
+        status: "in_attesa_programmazione",
+        files: [],
+        location: order.location ?? {},
+        customer: customer ?? {
+          id: "",
+          name: "",
+        }, // non usato in insert, ma type-safe
+        team: [], // non usato in insert
+        payments: [], // non usato in insert
+        docs: [], // non usato in insert
+        events: [], // non usato in insert
+      } as unknown as JobCreate;
+
+      const created = await jobAPI.create(newJobPayload);
+      if (!created) {
+        alert("Errore durante il salvataggio dell'intervento ❌");
+        return;
+      }
+      showToast("success", "Intervento creato ✅");
+      await reloadJobs();
+    }
+
+    setFormData({});
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  // 🔹 modifica intervento
+  const handleEdit = (job: Job) => {
+    setFormData(job);
+    setEditingId(job.id);
+    setShowForm(true);
+  };
+
+  // 🔹 elimina intervento
+  const handleDelete = async (jobId: string) => {
+    if (!confirm("Vuoi davvero eliminare questo intervento?")) return;
+    await jobAPI.remove(jobId);
+    showToast("success", "Intervento eliminato 🗑️");
+    await reloadJobs();
+  };
+
+  // 🔹 allegati
+  const getStoragePath = (fileUrl: string): string => {
+    const url = new URL(fileUrl);
+    return decodeURIComponent(url.pathname.split("/").slice(3).join("/"));
+  };
+
+  const handleUploadFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !order) return;
+    const files = Array.from(e.target.files);
+
+    setLoadingDocs(true);
+    try {
+      for (const file of files) {
+        const filePath = `${order.id}/${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("order-files")
+          .upload(filePath, file);
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from("order-files")
+          .getPublicUrl(filePath);
+
+        const publicUrl = urlData.publicUrl;
+
+        await documentAPI.addToOrder(order.id, {
+          fileName: file.name,
+          fileUrl: publicUrl,
+          uploadedBy: "Backoffice",
+        });
+      }
+
+      const docs = await documentAPI.listByOrder(order.id);
+      setDocumenti(docs);
+
+      showToast("success", `📤 Caricati ${files.length} file correttamente`);
+    } catch (err) {
+      console.error("Errore upload file:", err);
+      showToast("error", "Errore durante il caricamento dei file");
+    } finally {
+      setLoadingDocs(false);
+      e.target.value = ""; // reset per permettere subito un nuovo upload
+    }
+  };
+
+  const handleDeleteFile = async (docId: string, fileUrl: string) => {
+    if (!order) return;
+    setLoadingDocs(true);
+    try {
+      const path = getStoragePath(fileUrl);
+      const { error: storageError } = await supabase.storage
+        .from("order-files")
+        .remove([path]);
+
+      if (storageError) throw storageError;
+
+      await documentAPI.deleteFromOrder(docId);
+
+      const docs = await documentAPI.listByOrder(order.id);
+      setDocumenti(docs);
+    } catch (err) {
+      console.error("Errore eliminazione file:", err);
+      alert("Errore durante l'eliminazione del file");
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  // 🔹 pagamenti aggregati
+  const allPayments: Payment[] = jobs.flatMap((j) =>
+    (j.payments ?? []).map((p) => ({ ...p, jobId: j.id }))
+  );
+
+  const totalExpected = allPayments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
+
+  const totalCollected = allPayments.reduce((sum, p) => {
+    if (p.collected) return sum + (p.amount ?? 0);               // incasso totale
+    if ((p as any).partial) return sum + ((p as any).collectedAmount ?? 0); // incasso parziale
+    return sum; 
+  }, 0);
+
+  const totalPending = totalExpected - totalCollected;
+
+
+  // Ordina dal più recente al più vecchio
+  const sortedJobs = [...jobs].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      {/* intestazione commessa */}
+      <div className="bg-white shadow rounded-lg p-4 md:p-6">
+        <h1 className="text-xl md:text-2xl font-bold mb-2">
+          Commessa {order.code}
+        </h1>
+        <p className="text-sm md:text-base">
+          <strong>Cliente:</strong>{" "}
+          {customer ? (
+            <Link
+              to={`/backoffice/customers/${customer.id}`}
+              className="text-blue-600 underline"
+            >
+              {customer.name}
+            </Link>
+          ) : (
+            "N/D"
+          )}
+        </p>
+        <p className="text-sm md:text-base mt-1">
+          <strong>Località:</strong>{" "}
+          {order.location?.address && <>{order.location.address} </>}
+          {order.location?.mapsUrl && (
+            <a
+              href={order.location.mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline ml-2"
+            >
+              Apri in Maps
+            </a>
+          )}
+        </p>
+      </div>
+
+      {/* Note */}
+      <div className="bg-white shadow rounded-lg p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-bold mb-2">Note commessa</h2>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Annota qui informazioni utili..."
+          className="w-full p-2 border rounded mb-2"
+          rows={4}
+        />
+        <button
+          onClick={handleSaveNotes}
+          className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg"
+        >
+          Salva Note
+        </button>
+      </div>
+
+      {/* Allegati */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          📎 Allegati commessa
+        </h2>
+
+        <label className="w-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 text-gray-500 cursor-pointer hover:border-blue-500 hover:text-blue-500 transition">
+          <input
+            type="file"
+            multiple
+            onChange={handleUploadFiles}
+            className="hidden"
+            disabled={loadingDocs}
+          />
+          <span className="text-sm">
+            {loadingDocs ? "⏳ Caricamento in corso..." : "Trascina file o clicca per caricare"}
+          </span>
+        </label>
+
+        {loadingDocs && (
+          <div className="flex items-center gap-2 text-blue-600 text-sm mt-3">
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8H4z"
+              />
+            </svg>
+            Caricamento in corso...
+          </div>
+        )}
+
+        {documenti.length === 0 ? (
+          <p className="text-gray-500 mt-4">Nessun documento caricato</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-gray-200">
+            {documenti.map((doc) => {
+              const d = formatDocumento(doc);
+              return (
+                <li key={d.id} className="flex justify-between items-center py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{d.icon}</span>
+                    <div>
+                      <a
+                        href={d.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {d.fileName}
+                      </a>
+                      <div className="text-xs text-gray-400">{d.formattedDate}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteFile(d.id, d.fileUrl)}
+                    className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
+                  >
+                    🗑️ Elimina
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {toast.show && <Toast toast={toast} />}
+      </div>
+
+      {/* Pagamenti */}
+      <div className="bg-white shadow rounded-lg p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-bold mb-2">Riepilogo pagamenti</h2>
+        {allPayments.length === 0 ? (
+          <p className="text-gray-500">Nessun pagamento registrato</p>
+        ) : (
+          <>
+            <ul className="space-y-2 mb-4">
+              {allPayments.map((p) => {
+                const job = jobs.find((j) => j.id === p.jobId);
+                return (
+                  <li
+                    key={p.id}
+                    className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 border p-2 rounded"
+                  >
+                    <span className="text-sm md:text-base">
+                      {p.label} — {p.amount.toFixed(2)} € —{" "}
+                      <span className={p.collected ? "text-green-600" : "text-red-600"}>
+                        {p.collected ? "Incassato" : "Da incassare"}
+                      </span>{" "}
+                      {job && (
+                        <span className="text-gray-500 ml-0 md:ml-2 block md:inline">
+                          (Intervento: {job.title})
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Totali */}
+            <div className="border-t pt-3 text-sm md:text-base space-y-1">
+              <div>
+                <strong>Totale previsto:</strong> {totalExpected.toFixed(2)} €
+              </div>
+              <div className="text-green-600">
+                <strong>Totale incassato:</strong> {totalCollected.toFixed(2)} €
+              </div>
+              <div className={totalPending > 0 ? "text-red-700 font-bold" : "text-green-700 font-bold"}>
+                <strong>Residuo:</strong> {totalPending.toFixed(2)} €
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Interventi */}
+      <div className="bg-white shadow rounded-lg p-4 md:p-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4">
+          <h2 className="text-lg md:text-xl font-bold">
+            Interventi ({sortedJobs.length})
+          </h2>
+          <button
+            onClick={() => {
+              setFormData({});
+              setEditingId(null);
+              setShowForm(true);
+            }}
+            className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            + Nuovo Intervento
+          </button>
+        </div>
+
+        {/* Card view mobile */}
+        <div className="space-y-4 md:hidden">
+          {sortedJobs.map((j) => {
+            const st = getEffectiveStatus(j);
+            const cfg = STATUS_CONFIG[st];
+            const isLateRow =
+              j.plannedDate && st === "in_ritardo";
+
+            return (
+              <div
+                key={j.id}
+                className={`border rounded-lg p-4 shadow-sm bg-white ${isLateRow ? "ring-1 ring-red-300" : ""}`}
+              >
+                <div className="text-sm text-gray-500">
+                  📅 {j.plannedDate ? new Date(j.plannedDate).toLocaleString("it-IT") : "-"}
+                </div>
+                <div className="font-semibold mt-1">{j.title}</div>
+                <div className="text-sm mt-1">
+                  👷{" "}
+                  {j.assignedWorkers?.length
+                    ? j.assignedWorkers.map((wid) => workers.find((w) => w.id === wid)?.name).join(", ")
+                    : "-"}
+                </div>
+                <div className="mt-2">
+                  <span className={`px-2 py-1 rounded text-xs ${cfg?.color ?? "bg-gray-200 text-gray-700"}`}>
+                    {cfg?.icon} {cfg?.label ?? st}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600 mt-1 truncate">📝 {j.notes || "-"}</div>
+                <div className="flex gap-2 mt-3">
+                  <Link to={`/backoffice/jobs/${j.id}`} className="flex-1 px-2 py-1 bg-blue-600 text-white rounded text-center">
+                    Apri
+                  </Link>
+                  <button onClick={() => handleEdit(j)} className="flex-1 px-2 py-1 bg-yellow-500 text-white rounded">
+                    ✏️
+                  </button>
+                  <button onClick={() => handleDelete(j.id)} className="flex-1 px-2 py-1 bg-red-600 text-white rounded">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Tabella desktop */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="min-w-full border-collapse bg-white">
+            <thead className="bg-gray-100 text-left">
+              <tr>
+                <th className="p-2">Data programmata 📅</th>
+                <th className="p-2">Tipologia</th>
+                <th className="p-2">Squadra 👷</th>
+                <th className="p-2">Stato</th>
+                <th className="p-2">Note</th>
+                <th className="p-2">Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedJobs.map((j) => {
+                const st = getEffectiveStatus(j);
+                const cfg = STATUS_CONFIG[st];
+                const isTodayOrTomorrow =
+                  j.plannedDate &&
+                  (() => {
+                    const planned = new Date(j.plannedDate);
+                    const base = new Date();
+                    base.setHours(0, 0, 0, 0);
+                    const diffDays = (planned.getTime() - base.getTime()) / (1000 * 60 * 60 * 24);
+                    return diffDays >= 0 && diffDays < 2;
+                  })();
+
+                const isLateRow = j.plannedDate && st === "in_ritardo";
+
+                return (
+                  <tr
+                    key={j.id}
+                    className={`border-t ${isLateRow ? "bg-red-50" : isTodayOrTomorrow ? "bg-yellow-50" : ""}`}
+                  >
+                    <td className="p-2">
+                      {j.plannedDate ? new Date(j.plannedDate).toLocaleString("it-IT") : "-"}
+                    </td>
+                    <td className="p-2">{j.title}</td>
+                    <td className="p-2">
+                      {j.assignedWorkers?.length
+                        ? j.assignedWorkers.map((wid) => workers.find((w) => w.id === wid)?.name).join(", ")
+                        : "-"}
+                    </td>
+                    <td className="p-2">
+                      <span className={`px-2 py-1 rounded text-xs ${cfg?.color ?? "bg-gray-200 text-gray-700"}`}>
+                        {cfg?.icon} {cfg?.label ?? st}
+                      </span>
+                    </td>
+                    <td className="p-2 text-sm text-gray-600 truncate max-w-[200px]">
+                      {j.notes || "-"}
+                    </td>
+                    <td className="p-2 space-x-2">
+                      <Link to={`/backoffice/jobs/${j.id}`} className="px-2 py-1 bg-blue-600 text-white rounded">
+                        Apri
+                      </Link>
+                      <button onClick={() => handleEdit(j)} className="px-2 py-1 bg-yellow-500 text-white rounded">
+                        ✏️
+                      </button>
+                      <button onClick={() => handleDelete(j.id)} className="px-2 py-1 bg-red-600 text-white rounded">
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal nuovo/modifica intervento */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3">
+          <div className="bg-white rounded-xl p-4 md:p-6 w-full max-w-md shadow-lg">
+            <h2 className="text-lg md:text-xl font-bold mb-4">
+              {editingId ? "Modifica Intervento" : "Nuovo Intervento"}
+            </h2>
+
+            <input
+              type="text"
+              name="title"
+              placeholder="Tipologia intervento *"
+              value={formData.title ?? ""}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full p-2 border rounded mb-2"
+            />
+
+            <label className="block font-semibold mb-1">Data e ora programmate</label>
+            <input
+              type="datetime-local"
+              name="plannedDate"
+              value={(formData.plannedDate as string) ?? ""}
+              onChange={(e) => setFormData({ ...formData, plannedDate: e.target.value })}
+              className="w-full p-2 border rounded mb-2"
+            />
+
+            <label className="block font-semibold mb-1">Assegna squadra</label>
+            <div className="space-y-1 mb-2 max-h-48 overflow-auto pr-1">
+              {workers.map((w) => (
+                <label key={w.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.assignedWorkers?.includes(w.id) ?? false}
+                    onChange={(e) => {
+                      const current = formData.assignedWorkers ?? [];
+                      setFormData({
+                        ...formData,
+                        assignedWorkers: e.target.checked
+                          ? [...current, w.id]
+                          : current.filter((id) => id !== w.id),
+                      });
+                    }}
+                  />
+                  <span>{w.name}</span>
+                </label>
+              ))}
+            </div>
+
+            <textarea
+              name="notes"
+              placeholder="Note interne"
+              value={formData.notes ?? ""}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full p-2 border rounded mb-2"
+            />
+
+            <div className="flex flex-col md:flex-row md:justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setFormData({});
+                  setEditingId(null);
+                }}
+                className="w-full md:w-auto px-4 py-2 bg-gray-300 rounded-lg"
+              >
+                Annulla
+              </button>
+              <button onClick={handleSaveJob} className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg">
+                Salva
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

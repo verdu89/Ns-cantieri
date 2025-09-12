@@ -1,0 +1,158 @@
+import { Outlet } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
+import BackofficeNavbar from "./BackofficeNavbar";
+import WorkerNavbar from "./WorkerNavbar";
+import UserMenu from "@/components/UserMenu";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+
+export default function Layout_Primo_Neutro() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useAuth();
+  const { theme } = useTheme();
+
+  const NavbarComponent =
+    user?.role === "worker" ? WorkerNavbar : BackofficeNavbar;
+
+  return (
+    <div
+      className={`
+        flex h-screen w-full overflow-hidden
+        ${theme === "light" ? "bg-gray-100" : "bg-gray-900"}
+      `}
+    >
+      {/* Layout principale */}
+      <div className="flex h-full w-full relative z-10">
+        {/* Sidebar desktop */}
+        <motion.aside
+          initial={{ x: -60, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className={`
+            hidden md:flex
+            w-64 flex-col justify-between relative
+            ${theme === "light"
+              ? "bg-white border-gray-200"
+              : "bg-gray-800 border-gray-700"}
+            backdrop-blur-2xl border-r
+            p-4 shadow-xl
+            text-gray-900 dark:text-gray-100
+          `}
+        >
+          {/* Navbar in alto */}
+          <div className="flex flex-col gap-2">
+            <NavbarComponent />
+          </div>
+
+          {/* User menu in basso */}
+          <div className="mt-4 border-t pt-4 relative">
+            <UserMenu dropUp />
+          </div>
+        </motion.aside>
+
+        {/* Sidebar mobile (drawer) */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <div
+              className="flex-1 bg-black/50"
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: -250 }}
+              animate={{ x: 0 }}
+              exit={{ x: -250 }}
+              className={`
+                w-64 flex flex-col justify-between relative
+                ${theme === "light"
+                  ? "bg-white border-gray-200"
+                  : "bg-gray-800 border-gray-700"}
+                backdrop-blur-2xl border-r
+                p-4 shadow-xl
+                text-gray-900 dark:text-gray-100
+              `}
+            >
+              <div>
+                <button
+                  className="mb-4 flex items-center gap-2 text-gray-600 dark:text-gray-300"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <X size={20} /> Chiudi
+                </button>
+                <div className="flex flex-col gap-2">
+                  <NavbarComponent />
+                </div>
+              </div>
+
+              <div className="mt-4 border-t pt-4 relative">
+                <UserMenu />
+              </div>
+            </motion.aside>
+          </div>
+        )}
+
+        {/* Area contenuto */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Topbar */}
+          <header
+            className={`
+              flex items-center 
+              ${theme === "light"
+                ? "bg-white border-gray-200"
+                : "bg-gray-800 border-gray-700"}
+              backdrop-blur-2xl border-b
+              px-4 sm:px-6 py-3 shadow-md
+            `}
+          >
+            <button
+              className="md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
+            <h1
+              className={`
+                ml-2 text-lg sm:text-xl font-semibold tracking-wide
+                ${theme === "light" ? "text-gray-900" : "text-gray-100"}
+              `}
+            >
+              NS cantieri
+            </h1>
+          </header>
+
+          {/* Main */}
+          <motion.main
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6"
+          >
+            <div
+              className={`
+                rounded-xl border shadow-lg p-4 sm:p-6
+                ${theme === "light"
+                  ? "bg-white border-gray-200"
+                  : "bg-gray-800 border-gray-700"}
+              `}
+            >
+              <Outlet />
+            </div>
+          </motion.main>
+
+          {/* Footer */}
+          <footer
+            className={`
+              px-4 py-3 text-xs text-center border-t
+              ${theme === "light"
+                ? "bg-white text-gray-500 border-gray-200"
+                : "bg-gray-800 text-gray-400 border-gray-700"}
+            `}
+          >
+            © {new Date().getFullYear()} New Saverplast. Tutti i diritti riservati.
+          </footer>
+        </div>
+      </div>
+    </div>
+  );
+}
