@@ -220,6 +220,30 @@ export default function Agenda() {
         </div>
       </div>
 
+      {/* Giorni (Calendario) */}
+      <div className="block md:hidden space-y-4">
+        {days.map((d) => (
+          <DayCard
+            key={d.toISOString()}
+            d={d}
+            list={jobsByDay.get(toLocalISODate(d)) ?? []}
+            isToday={toLocalISODate(d) === toLocalISODate(new Date())}
+            userRole={user?.role}
+          />
+        ))}
+      </div>
+      <div className="hidden md:grid md:grid-cols-5 gap-4">
+        {days.map((d) => (
+          <DayCard
+            key={d.toISOString()}
+            d={d}
+            list={jobsByDay.get(toLocalISODate(d)) ?? []}
+            isToday={toLocalISODate(d) === toLocalISODate(new Date())}
+            userRole={user?.role}
+          />
+        ))}
+      </div>
+
       {/* KPI tabella compatta */}
       <div className="overflow-x-auto rounded-lg border bg-white">
         <table className="w-full text-sm">
@@ -248,30 +272,6 @@ export default function Agenda() {
             })}
           </tbody>
         </table>
-      </div>
-
-      {/* Giorni */}
-      <div className="block md:hidden space-y-4">
-        {days.map((d) => (
-          <DayCard
-            key={d.toISOString()}
-            d={d}
-            list={jobsByDay.get(toLocalISODate(d)) ?? []}
-            isToday={toLocalISODate(d) === toLocalISODate(new Date())}
-            userRole={user?.role}
-          />
-        ))}
-      </div>
-      <div className="hidden md:grid md:grid-cols-5 gap-4">
-        {days.map((d) => (
-          <DayCard
-            key={d.toISOString()}
-            d={d}
-            list={jobsByDay.get(toLocalISODate(d)) ?? []}
-            isToday={toLocalISODate(d) === toLocalISODate(new Date())}
-            userRole={user?.role}
-          />
-        ))}
       </div>
 
       {loading && <div className="text-sm text-gray-500">Caricamento…</div>}

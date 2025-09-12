@@ -66,9 +66,14 @@ export default function ReportPage() {
   );
 
   // KPI pagamenti
-  const paymentsThisWeek: Payment[] = jobsThisWeek.flatMap((j) => j.payments ?? []);
+  const paymentsThisWeek: Payment[] = jobsThisWeek.flatMap(
+    (j) => j.payments ?? []
+  );
 
-  const totalePrevisto = paymentsThisWeek.reduce((s, p) => s + (p.amount ?? 0), 0);
+  const totalePrevisto = paymentsThisWeek.reduce(
+    (s, p) => s + (p.amount ?? 0),
+    0
+  );
   const totaleIncassato = paymentsThisWeek.reduce((s, p) => {
     if (p.collected) return s + (p.amount ?? 0);
     if ((p as any).partial) return s + ((p as any).collectedAmount ?? 0);
@@ -77,7 +82,9 @@ export default function ReportPage() {
   const totaleResiduo = totalePrevisto - totaleIncassato;
 
   // KPI lavori
-  const completati = jobsThisWeek.filter((j) => j.status === "completato").length;
+  const completati = jobsThisWeek.filter(
+    (j) => j.status === "completato"
+  ).length;
   const completionRate = jobsThisWeek.length
     ? Math.round((completati / jobsThisWeek.length) * 100)
     : 0;
@@ -101,7 +108,14 @@ export default function ReportPage() {
     name: status,
     value: jobsThisWeek.filter((j) => j.status === status).length,
   }));
-  const COLORS = ["#22c55e", "#3b82f6", "#eab308", "#10b981", "#f97316", "#ef4444"];
+  const COLORS = [
+    "#22c55e",
+    "#3b82f6",
+    "#eab308",
+    "#10b981",
+    "#f97316",
+    "#ef4444",
+  ];
 
   return (
     <main className="p-4 sm:p-6 space-y-6">
@@ -165,7 +179,9 @@ export default function ReportPage() {
       {/* Grafici */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white shadow rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-2">Interventi per Montatore</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            Interventi per Montatore
+          </h2>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={jobsByWorker}>
               <XAxis dataKey="name" />
@@ -177,7 +193,9 @@ export default function ReportPage() {
         </div>
 
         <div className="bg-white shadow rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-2">Distribuzione Stati Lavori</h2>
+          <h2 className="text-lg font-semibold mb-2">
+            Distribuzione Stati Lavori
+          </h2>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
@@ -215,31 +233,47 @@ export default function ReportPage() {
           </thead>
           <tbody>
             {ordersThisWeek.map((o) => {
-              const relatedJobs = jobsThisWeek.filter((j) => j.jobOrderId === o.id);
-              const relatedPayments = relatedJobs.flatMap((j) => j.payments ?? []);
+              const relatedJobs = jobsThisWeek.filter(
+                (j) => j.jobOrderId === o.id
+              );
+              const relatedPayments = relatedJobs.flatMap(
+                (j) => j.payments ?? []
+              );
 
-              const previsto = relatedPayments.reduce((s, p) => s + (p.amount ?? 0), 0);
+              const previsto = relatedPayments.reduce(
+                (s, p) => s + (p.amount ?? 0),
+                0
+              );
               const incassato = relatedPayments.reduce((s, p) => {
                 if (p.collected) return s + (p.amount ?? 0);
-                if ((p as any).partial) return s + ((p as any).collectedAmount ?? 0);
+                if ((p as any).partial)
+                  return s + ((p as any).collectedAmount ?? 0);
                 return s;
               }, 0);
 
               return (
                 <tr key={o.id} className="border-t">
                   <td className="p-2">
-                    {customers.find((c) => c.id === o.customerId)?.name ?? "N/D"}
+                    {customers.find((c) => c.id === o.customerId)?.name ??
+                      "N/D"}
                   </td>
                   <td className="p-2">{o.code}</td>
                   <td className="p-2">{relatedJobs.length}</td>
                   <td className="p-2">
-                    {relatedJobs.filter((j) => j.status === "completato").length}
+                    {
+                      relatedJobs.filter((j) => j.status === "completato")
+                        .length
+                    }
                   </td>
                   <td className="p-2">{previsto.toFixed(2)}€</td>
-                  <td className="p-2 text-green-600">{incassato.toFixed(2)}€</td>
+                  <td className="p-2 text-green-600">
+                    {incassato.toFixed(2)}€
+                  </td>
                   <td
                     className={`p-2 font-bold ${
-                      previsto - incassato > 0 ? "text-red-600" : "text-green-600"
+                      previsto - incassato > 0
+                        ? "text-red-600"
+                        : "text-green-600"
                     }`}
                   >
                     {(previsto - incassato).toFixed(2)}€
