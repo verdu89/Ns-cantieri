@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Edit, Trash2 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import type { Worker } from "../../types";
+import { useToast } from "../../context/ToastContext";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface WorkerRow extends Worker {
   user_id: string;
@@ -14,6 +16,12 @@ export default function MontatoriPage() {
   const [editing, setEditing] = useState<WorkerRow | null>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [loading, setLoading] = useState(false);
+
+  // conferma eliminazione
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [selected, setSelected] = useState<WorkerRow | null>(null);
+
+  const { showToast } = useToast();
 
   const load = async () => {
     setLoading(true);
@@ -36,10 +44,14 @@ export default function MontatoriPage() {
       if (!res.ok) {
         console.error("Errore list-workers:", json);
         setMontatori([]);
+        showToast("error", "Errore durante il caricamento dei montatori ❌");
         return;
       }
 
       setMontatori(json.workers || []);
+    } catch (err) {
+      console.error("Errore caricamento montatori:", err);
+      showToast("error", "Errore di connessione ❌");
     } finally {
       setLoading(false);
     }
@@ -66,7 +78,10 @@ export default function MontatoriPage() {
 
   async function handleSave() {
     if (!editing) return;
-    if (!form.name.trim() || !form.email.trim()) return;
+    if (!form.name.trim() || !form.email.trim()) {
+      showToast("error", "Nome ed email sono obbligatori ❌");
+      return;
+    }
 
     try {
       const { data: sess } = await supabase.auth.getSession();
@@ -92,21 +107,22 @@ export default function MontatoriPage() {
       const out = await res.json();
       if (!res.ok) {
         console.error("Errore update-user:", out);
-        alert(`Errore aggiornamento: ${out.error || "sconosciuto"}`);
+        showToast("error", `Errore aggiornamento: ${out.error || "sconosciuto"} ❌`);
         return;
       }
 
       await load();
       setModalOpen(false);
       resetForm();
+      showToast("success", "Montatore aggiornato con successo ✅");
     } catch (e) {
       console.error("Errore salvataggio montatore", e);
+      showToast("error", "Errore durante il salvataggio ❌");
     }
   }
 
-  async function handleDelete(m: WorkerRow) {
-    if (!window.confirm("Eliminare definitivamente questo montatore (utente + record)?")) return;
-
+  async function confirmDelete() {
+    if (!selected) return;
     try {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token;
@@ -119,19 +135,24 @@ export default function MontatoriPage() {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ workerId: m.user_id }),
+          body: JSON.stringify({ workerId: selected.user_id }),
         }
       );
+
       const out = await res.json();
       if (!res.ok) {
         console.error("Errore delete-user:", out);
-        alert(`Errore eliminazione: ${out.error || "sconosciuto"}`);
+        showToast("error", `Errore eliminazione: ${out.error || "sconosciuto"} ❌`);
         return;
       }
 
-      setMontatori((prev) => prev.filter((x) => x.id !== m.id));
+      setMontatori((prev) => prev.filter((x) => x.id !== selected.id));
+      showToast("success", "Montatore eliminato con successo ✅");
     } catch (e) {
       console.error("Errore eliminazione montatore", e);
+      showToast("error", "Errore durante l'eliminazione ❌");
+    } finally {
+      setSelected(null);
     }
   }
 
@@ -173,7 +194,10 @@ export default function MontatoriPage() {
                       <Edit className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(m)}
+                      onClick={() => {
+                        setSelected(m);
+                        setOpenConfirm(true);
+                      }}
                       className="p-2 rounded hover:bg-red-100 text-red-600"
                       title="Elimina"
                     >
@@ -215,7 +239,10 @@ export default function MontatoriPage() {
                   ✏️ Modifica
                 </button>
                 <button
-                  onClick={() => handleDelete(m)}
+                  onClick={() => {
+                    setSelected(m);
+                    setOpenConfirm(true);
+                  }}
                   className="flex-1 px-3 py-2 rounded bg-red-600 text-white text-sm"
                 >
                   🗑️ Elimina
@@ -293,6 +320,17 @@ export default function MontatoriPage() {
           </div>
         </div>
       )}
+
+      {/* Conferma eliminazione */}
+      <ConfirmDialog
+        open={openConfirm}
+        setOpen={setOpenConfirm}
+        title="Elimina montatore"
+        description="Sei sicuro di voler eliminare questo montatore? Questa azione è irreversibile."
+        confirmText="Elimina"
+        cancelText="Annulla"
+        onConfirm={confirmDelete}
+      />
     </main>
   );
 }

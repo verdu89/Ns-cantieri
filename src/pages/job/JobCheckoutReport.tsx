@@ -36,12 +36,17 @@ export default function JobCheckoutReport({
         return (
           <Card key={ev.id} className="overflow-hidden">
             <CardHeader className="pb-2">
+
               <CardTitle className="text-base md:text-lg">
                 📋 Checkout del{" "}
-                {new Date(ev.date || ev.createdAt || "").toLocaleString("it-IT", {
-                  timeZone: "Europe/Rome",
-                })}
+                {(ev.notes ?? "")
+                  .split("\n")
+                  .find((line) => line.startsWith("Data:"))
+                  ?.replace("Data:", "")
+                  .trim() || "-"}
               </CardTitle>
+
+
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Report del checkout */}
@@ -74,6 +79,38 @@ export default function JobCheckoutReport({
                   </ul>
                 </div>
               )}
+
+              {/* Bottone stampa */}
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => {
+                    const printWindow = window.open("", "_blank", "width=800,height=600");
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Stampa Checkout</title>
+                            <style>
+                              body { font-family: sans-serif; padding: 20px; }
+                              pre { white-space: pre-wrap; word-break: break-word; }
+                            </style>
+                          </head>
+                          <body>
+                            <h2>📋 Report Checkout</h2>
+                            <pre>${ev.notes ?? ""}</pre>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }
+                  }}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  🖨️ Stampa
+                </button>
+              </div>
+
             </CardContent>
           </Card>
         );

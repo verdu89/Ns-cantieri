@@ -68,6 +68,7 @@ export interface Worker {
   createdAt?: string;
   email?:string;
   
+  
 }
 
 // Documenti (sia commessa che job)

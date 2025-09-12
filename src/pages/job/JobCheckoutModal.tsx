@@ -6,12 +6,13 @@ import { documentAPI } from "@/api/documentAPI";
 
 /* ===================== Helpers ===================== */
 
-// 🔹 Upload allegati fine lavoro
+// 🔹 Upload allegati fine lavoro con toast descrittivi
 async function uploadFineLavoro(
   jobId: string,
   files: File[],
   userId: string,
-  checkoutIndex: number
+  checkoutIndex: number,
+  showToast?: (t: "success" | "error", m: string) => void
 ) {
   const BUCKET = "order-files";
   const today = new Date().toISOString().split("T")[0];
@@ -19,22 +20,31 @@ async function uploadFineLavoro(
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const ext = file.name.split(".").pop();
-    const newName = `fine_lavoro_${checkoutIndex}_${today}.${ext}`; // ✅ usa indice del checkout
+    const newName = `fine_lavoro_${checkoutIndex}_${today}.${ext}`;
 
-    const { error: upErr } = await supabase.storage
-      .from(BUCKET)
-      .upload(`jobs/${jobId}/${newName}`, file, { upsert: true });
-    if (upErr) throw upErr;
+    try {
+      const { error: upErr } = await supabase.storage
+        .from(BUCKET)
+        .upload(`jobs/${jobId}/${newName}`, file, { upsert: true });
 
-    const { data: urlData } = supabase.storage
-      .from(BUCKET)
-      .getPublicUrl(`jobs/${jobId}/${newName}`);
+      if (upErr) throw upErr;
 
-    await documentAPI.addToJob(jobId, {
-      fileName: newName,
-      fileUrl: urlData.publicUrl,
-      uploadedBy: userId,
-    });
+      const { data: urlData } = supabase.storage
+        .from(BUCKET)
+        .getPublicUrl(`jobs/${jobId}/${newName}`);
+
+      await documentAPI.addToJob(jobId, {
+        fileName: newName,
+        fileUrl: urlData.publicUrl,
+        uploadedBy: userId,
+      });
+
+      showToast?.("success", `✅ ${file.name} caricato correttamente`);
+    } catch (err: any) {
+      console.error("Errore upload file:", file.name, err);
+      showToast?.("error", `❌ Errore durante il caricamento di ${file.name}`);
+      throw err; // blocco l’intero checkout
+    }
   }
 }
 
@@ -136,6 +146,10 @@ export default function JobCheckoutModal({
     }
   };
 
+  const removeFile = (name: string) => {
+    setFiles((prev) => prev.filter((f) => f.name !== name));
+  };
+
   const confirmCheckout = async () => {
     if (!ultimato) {
       showToast?.("error", "⚠️ Seleziona un esito prima di procedere");
@@ -146,9 +160,9 @@ export default function JobCheckoutModal({
 
     setCheckingOut(true);
     try {
-      // 1) Upload allegati con indice checkout
+      // 1) Upload allegati con indice checkout (con toast descrittivi)
       if (files.length > 0) {
-        await uploadFineLavoro(job.id, files, currentUser.id, checkoutIndex);
+        await uploadFineLavoro(job.id, files, currentUser.id, checkoutIndex, showToast);
       }
 
       // 2) Salva evento checkout con report
@@ -160,13 +174,13 @@ export default function JobCheckoutModal({
         .update({ status: stato, notes: "" })
         .eq("id", job.id);
 
-
       // 4) Refresh UI
       await loadData?.();
       setCompleted(true);
       showToast?.("success", "✅ Checkout effettuato con successo!");
     } catch (err: any) {
       console.error("Errore nel checkout:", err);
+      // NB: i toast specifici dei file falliti vengono già mostrati da uploadFineLavoro
       showToast?.("error", err.message || "Errore durante il checkout");
     } finally {
       setCheckingOut(false);
@@ -174,7 +188,7 @@ export default function JobCheckoutModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-lg max-w-3xl mx-auto w-full p-6 space-y-6 overflow-y-auto max-h-[95vh]">
         {!completed ? (
           <>
@@ -293,16 +307,22 @@ export default function JobCheckoutModal({
                     return (
                       <li
                         key={f.name}
-                        className="flex justify-between border p-2 rounded-md bg-gray-50"
+                        className="flex justify-between items-center border p-2 rounded-md bg-gray-50"
                       >
-                        <span>
+                        <div>
                           {`fine_lavoro_${checkoutIndex}_${new Date()
                             .toISOString()
                             .split("T")[0]}.${ext}`}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {(f.size / 1024 / 1024).toFixed(2)} MB
-                        </span>
+                          <span className="ml-2 text-xs text-gray-500">
+                            {(f.size / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => removeFile(f.name)}
+                          className="ml-3 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                        >
+                          🗑️ Rimuovi
+                        </button>
                       </li>
                     );
                   })}

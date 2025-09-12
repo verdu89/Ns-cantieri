@@ -237,7 +237,7 @@ export default function Customers() {
 
       {/* Modal nuovo/modifica cliente */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3">
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center p-3">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
             <h2 className="text-lg font-bold mb-4">
               {editingId ? "Modifica Cliente" : "Nuovo Cliente"}
