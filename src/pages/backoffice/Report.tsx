@@ -1,4 +1,3 @@
-// File: pages/backoffice/ReportPage.tsx
 import { useEffect, useState } from "react";
 import { jobOrderAPI } from "../../api/jobOrders";
 import { jobAPI } from "../../api/jobs";
@@ -20,7 +19,7 @@ import {
 
 function startOfWeek(date: Date) {
   const d = new Date(date);
-  const day = d.getDay(); // 0 domenica, 1 lunedì...
+  const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(d.setDate(diff));
 }
@@ -36,7 +35,7 @@ export default function ReportPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [weekOffset, setWeekOffset] = useState(0); // 0 = questa settimana, -1 = settimana scorsa...
+  const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
     jobOrderAPI.list().then(setOrders);
@@ -45,7 +44,7 @@ export default function ReportPage() {
     workerAPI.list().then(setWorkers);
   }, []);
 
-  // Calcolo intervallo settimana
+  // Calcolo settimana
   const now = new Date();
   const currentWeekStart = startOfWeek(now);
   const currentWeek = new Date(
@@ -54,7 +53,7 @@ export default function ReportPage() {
   const weekStart = startOfWeek(currentWeek);
   const weekEnd = endOfWeek(currentWeek);
 
-  // Filtra job per settimana
+  // Filtri
   const jobsThisWeek = jobs.filter((j) => {
     if (!j.plannedDate) return false;
     const d = new Date(j.plannedDate);
@@ -69,7 +68,6 @@ export default function ReportPage() {
   const paymentsThisWeek: Payment[] = jobsThisWeek.flatMap(
     (j) => j.payments ?? []
   );
-
   const totalePrevisto = paymentsThisWeek.reduce(
     (s, p) => s + (p.amount ?? 0),
     0
@@ -91,7 +89,7 @@ export default function ReportPage() {
 
   // Grafico per montatore
   const jobsByWorker = workers.map((w) => ({
-    name: w.name,
+    name: w.name.length > 12 ? w.name.substring(0, 12) + "..." : w.name,
     count: jobsThisWeek.filter((j) => j.assignedWorkers.includes(w.id)).length,
   }));
 
@@ -143,7 +141,7 @@ export default function ReportPage() {
       </div>
 
       {/* KPI */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-white shadow rounded-lg p-4 text-center">
           <p className="text-sm text-gray-500">Interventi</p>
           <p className="text-xl font-bold">{jobsThisWeek.length}</p>
@@ -178,20 +176,26 @@ export default function ReportPage() {
 
       {/* Grafici */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Montatori */}
         <div className="bg-white shadow rounded-lg p-4">
           <h2 className="text-lg font-semibold mb-2">
             Interventi per Montatore
           </h2>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={jobsByWorker}>
-              <XAxis dataKey="name" />
-              <YAxis />
+            <BarChart
+              data={jobsByWorker}
+              layout="vertical" // orizzontale, più leggibile su mobile
+              margin={{ left: 50 }}
+            >
+              <XAxis type="number" />
+              <YAxis type="category" dataKey="name" width={100} />
               <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6" />
+              <Bar dataKey="count" fill="#3b82f6" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
+        {/* Stati */}
         <div className="bg-white shadow rounded-lg p-4">
           <h2 className="text-lg font-semibold mb-2">
             Distribuzione Stati Lavori
@@ -216,10 +220,10 @@ export default function ReportPage() {
         </div>
       </div>
 
-      {/* Riepilogo commesse della settimana */}
-      <div className="bg-white shadow rounded-lg p-4">
+      {/* Riepilogo commesse */}
+      <div className="bg-white shadow rounded-lg p-4 overflow-x-auto">
         <h2 className="text-lg font-semibold mb-4">Riepilogo Commesse</h2>
-        <table className="w-full border-collapse text-left">
+        <table className="w-full border-collapse text-left text-sm">
           <thead className="bg-gray-100">
             <tr>
               <th className="p-2">Cliente</th>
@@ -239,7 +243,6 @@ export default function ReportPage() {
               const relatedPayments = relatedJobs.flatMap(
                 (j) => j.payments ?? []
               );
-
               const previsto = relatedPayments.reduce(
                 (s, p) => s + (p.amount ?? 0),
                 0
