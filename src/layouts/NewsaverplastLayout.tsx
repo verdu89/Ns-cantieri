@@ -134,18 +134,16 @@ export default function NewsaverplastLayout() {
             </button>
             <div className="ml-2 flex items-center gap-2">
               <img
-                src="/img/fav.png"
+                src="/img/logo.png"
                 alt="Logo NS Cantieri"
-                className="h-6 w-6 object-contain"
+                className="h-10 w-[100px] sm:h-12 sm:w-[100px] md:h-14 md:w-[100px] lg:h-16 lg:w-[150px] object-auto"
               />
               <h1
                 className={`
                   text-lg sm:text-xl font-semibold tracking-wide
                   ${theme === "light" ? "text-gray-900" : "text-gray-100"}
                 `}
-              >
-                NS cantieri
-              </h1>
+              ></h1>
             </div>
           </header>
 
