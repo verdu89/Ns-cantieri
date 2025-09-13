@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { useToast } from "../context/ToastContext";
+import { toast } from "react-hot-toast";
 import type { Worker } from "../types";
 
 export default function Settings() {
   const { user } = useAuth();
-  const { showToast } = useToast();
 
   // Stato per cambio password personale
   const [newPassword, setNewPassword] = useState("");
@@ -17,73 +21,86 @@ export default function Settings() {
   // Stato per admin/backoffice
   const isAdmin = user?.role === "admin" || user?.role === "backoffice";
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [selectedWorker, setSelectedWorker] = useState(""); // user_id del worker
+  const [selectedWorker, setSelectedWorker] = useState(""); // userId del worker
   const [adminNewPassword, setAdminNewPassword] = useState("");
 
-  // Carico workers se admin (includo user_id)
+  // Carico workers se admin (alias user_id → userId)
   useEffect(() => {
     if (isAdmin) {
       supabase
         .from("workers")
-        .select("id, name, role, user_id")
+        .select("id, name, role, phone, email, created_at, user_id")
         .then(({ data, error }) => {
           if (error) {
             console.error(error);
-            showToast("error", "❌ Errore caricamento utenti");
+            toast.error("❌ Errore caricamento utenti");
           } else {
-            const nonAdmin = (data || []).filter((w) => w.role !== "admin");
+            const mapped: Worker[] = (data ?? []).map((w: any) => ({
+              id: w.id,
+              userId: w.user_id,
+              name: w.name,
+              phone: w.phone,
+              email: w.email,
+              createdAt: w.created_at,
+              role: w.role,
+            }));
+            const nonAdmin = mapped.filter((w) => w.role !== "admin");
             setWorkers(nonAdmin);
           }
         });
     }
-    // 👇 showToast rimosso dalle dipendenze per evitare warning
   }, [isAdmin]);
 
   // Cambio password utente loggato
   async function handlePasswordChange() {
-    if (!newPassword || newPassword !== confirmPassword) {
-      showToast("error", "❌ Le password non coincidono");
+    if (!newPassword || !confirmPassword) {
+      toast.error("⚠️ Compila entrambi i campi");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("❌ Le password non coincidono");
       return;
     }
     if (newPassword.length < 6) {
-      showToast("error", "❌ La password deve avere almeno 6 caratteri");
+      toast.error("❌ La password deve avere almeno 6 caratteri");
       return;
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
       if (error) {
         console.error("Errore update password:", error);
-        showToast("error", `❌ Errore: ${error.message}`);
+        toast.error(`❌ Errore: ${error.message}`);
       } else {
-        showToast("success", "✅ Password aggiornata con successo!");
+        toast.success("✅ Password aggiornata con successo!");
         setNewPassword("");
         setConfirmPassword("");
       }
     } catch (err: any) {
       console.error(err);
-      showToast("error", `❌ Errore imprevisto: ${err.message}`);
+      toast.error(`❌ Errore imprevisto: ${err.message}`);
     }
   }
 
   // Admin reset password (chiama Edge Function con JWT)
   async function handleAdminPasswordReset() {
     if (!selectedWorker || !adminNewPassword) {
-      showToast("error", "❌ Seleziona un utente e inserisci la nuova password");
+      toast.error("⚠️ Seleziona un utente e inserisci la nuova password");
       return;
     }
     if (adminNewPassword.length < 6) {
-      showToast("error", "❌ La password deve avere almeno 6 caratteri");
+      toast.error("❌ La password deve avere almeno 6 caratteri");
       return;
     }
 
     try {
-      // Prendo il JWT dell’utente loggato
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
 
       if (!token) {
-        showToast("error", "❌ Nessun token valido, rifai login");
+        toast.error("❌ Nessun token valido, rifai login");
         return;
       }
 
@@ -93,10 +110,10 @@ export default function Settings() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            workerId: selectedWorker, // 👈 workers.user_id (UUID di auth.users)
+            workerId: selectedWorker,
             newPassword: adminNewPassword,
           }),
         }
@@ -106,16 +123,18 @@ export default function Settings() {
 
       if (!res.ok) {
         console.error("Reset password error:", dataRes);
-        showToast("error", `❌ Errore reset password: ${dataRes.error || "Errore sconosciuto"}`);
+        toast.error(
+          `❌ Errore reset password: ${dataRes.error || "Errore sconosciuto"}`
+        );
         return;
       }
 
-      showToast("success", "✅ Password aggiornata con successo!");
+      toast.success("✅ Password aggiornata con successo!");
       setSelectedWorker("");
       setAdminNewPassword("");
     } catch (err: any) {
       console.error(err);
-      showToast("error", `❌ Errore imprevisto: ${err.message}`);
+      toast.error(`❌ Errore imprevisto: ${err.message}`);
     }
   }
 
@@ -129,9 +148,15 @@ export default function Settings() {
           <CardTitle>Profilo</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div><b>Nome:</b> {user?.name ?? "—"}</div>
-          <div><b>Email:</b> {user?.email ?? "—"}</div>
-          <div><b>Ruolo:</b> {user?.role ?? "—"}</div>
+          <div>
+            <b>Nome:</b> {user?.name ?? "—"}
+          </div>
+          <div>
+            <b>Email:</b> {user?.email ?? "—"}
+          </div>
+          <div>
+            <b>Ruolo:</b> {user?.role ?? "—"}
+          </div>
         </CardContent>
       </Card>
 
@@ -175,7 +200,7 @@ export default function Settings() {
             >
               <option value="">Seleziona utente</option>
               {workers.map((w) => (
-                <option key={w.id} value={w.user_id}>
+                <option key={w.id} value={w.userId}>
                   {w.name}
                 </option>
               ))}

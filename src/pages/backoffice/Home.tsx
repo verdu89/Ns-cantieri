@@ -10,6 +10,7 @@ import {
   ArrowDownUp,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 import { jobAPI } from "../../api/jobs";
 import { jobOrderAPI } from "../../api/jobOrders";
@@ -46,7 +47,6 @@ export default function JobsList() {
   const [workers, setWorkers] = useState<Worker[]>([]);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Filtri
   const [q, setQ] = useState("");
@@ -57,7 +57,6 @@ export default function JobsList() {
 
   const loadAll = async () => {
     try {
-      setError(null);
       setLoading(true);
       const [j, o, c, w] = await Promise.all([
         jobAPI.list(),
@@ -65,12 +64,15 @@ export default function JobsList() {
         customerAPI.list(),
         workerAPI.list(),
       ]);
-      setJobs(j.map((job) => ({ ...job, status: normalizeStatus(job.status) })));
+      setJobs(
+        j.map((job) => ({ ...job, status: normalizeStatus(job.status) }))
+      );
       setOrders(o);
       setCustomers(c);
       setWorkers(w);
     } catch (e: any) {
-      setError(e?.message ?? "Errore di caricamento");
+      console.error("Errore caricamento lavori:", e);
+      toast.error(e?.message ?? "Errore durante il caricamento dei lavori ❌");
     } finally {
       setLoading(false);
     }
@@ -151,7 +153,6 @@ export default function JobsList() {
           className="p-2 border rounded-xl min-w-0"
         />
 
-
         {/* Sort per data */}
         <button
           onClick={() =>
@@ -163,8 +164,6 @@ export default function JobsList() {
           {sortOrder === "asc" ? "Data ↑" : "Data ↓"}
         </button>
 
-
-
         {/* Filtro stato */}
         <div className="relative">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-60">
@@ -172,7 +171,9 @@ export default function JobsList() {
           </span>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value as EffectiveStatus | "all")}
+            onChange={(e) =>
+              setStatus(e.target.value as EffectiveStatus | "all")
+            }
             className="p-2 border rounded-xl w-full pl-9"
             title="Filtra per stato"
           >
@@ -198,7 +199,6 @@ export default function JobsList() {
           </select>
         </div>
 
-        
         <div className="flex md:justify-end">
           <button
             className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border bg-white hover:bg-gray-50"
@@ -208,12 +208,6 @@ export default function JobsList() {
           </button>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
-          {error}
-        </div>
-      )}
 
       {/* Mobile cards */}
       <div className="space-y-3 md:hidden">
@@ -292,7 +286,8 @@ export default function JobsList() {
             {loading && (
               <tr>
                 <td colSpan={6} className="p-6 text-center text-gray-500">
-                  <Loader2 className="animate-spin inline" size={16} /> Caricamento…
+                  <Loader2 className="animate-spin inline" size={16} />{" "}
+                  Caricamento…
                 </td>
               </tr>
             )}

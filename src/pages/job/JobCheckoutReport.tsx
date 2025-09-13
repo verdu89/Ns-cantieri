@@ -36,7 +36,6 @@ export default function JobCheckoutReport({
         return (
           <Card key={ev.id} className="overflow-hidden">
             <CardHeader className="pb-2">
-
               <CardTitle className="text-base md:text-lg">
                 📋 Checkout del{" "}
                 {(ev.notes ?? "")
@@ -45,8 +44,6 @@ export default function JobCheckoutReport({
                   ?.replace("Data:", "")
                   .trim() || "-"}
               </CardTitle>
-
-
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Report del checkout */}
@@ -84,7 +81,11 @@ export default function JobCheckoutReport({
               <div className="flex justify-end pt-2">
                 <button
                   onClick={() => {
-                    const printWindow = window.open("", "_blank", "width=800,height=600");
+                    const printWindow = window.open(
+                      "",
+                      "_blank",
+                      "width=800,height=600"
+                    );
                     if (printWindow) {
                       printWindow.document.write(`
                         <html>
@@ -110,7 +111,6 @@ export default function JobCheckoutReport({
                   🖨️ Stampa
                 </button>
               </div>
-
             </CardContent>
           </Card>
         );

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Upload, Trash2, Download, Search } from "lucide-react";
 import { jobOrderAPI } from "../../api/jobOrders";
 import { documentAPI } from "../../api/documentAPI";
+import { jobAPI } from "../../api/jobs";
 import type { JobOrder, Documento } from "../../types";
 import { formatDocumento } from "../../utils/documenti";
 import { supabase } from "../../supabaseClient";
@@ -48,10 +49,7 @@ export default function DocumentiPage() {
 
       const docsJob = await Promise.all(
         c.map(async (commessa) => {
-          const jobs = await (
-            await import("../../api/jobs")
-          ).jobAPI.listByOrder(commessa.id);
-
+          const jobs = await jobAPI.listByOrder(commessa.id);
           const allDocs: DocumentoExtended[] = [];
           for (const job of jobs) {
             const d = await documentAPI.listByJob(job.id);

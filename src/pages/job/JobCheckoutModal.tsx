@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/Button";
 import type { Job, Payment } from "@/types";
 import { supabase } from "@/supabaseClient";
 import { documentAPI } from "@/api/documentAPI";
+import { toast } from "react-hot-toast";
 
 /* ===================== Helpers ===================== */
 
@@ -11,8 +12,7 @@ async function uploadFineLavoro(
   jobId: string,
   files: File[],
   userId: string,
-  checkoutIndex: number,
-  showToast?: (t: "success" | "error", m: string) => void
+  checkoutIndex: number
 ) {
   const BUCKET = "order-files";
   const today = new Date().toISOString().split("T")[0];
@@ -39,10 +39,10 @@ async function uploadFineLavoro(
         uploadedBy: userId,
       });
 
-      showToast?.("success", `✅ ${file.name} caricato correttamente`);
+      toast.success(`✅ ${file.name} caricato correttamente`);
     } catch (err: any) {
       console.error("Errore upload file:", file.name, err);
-      showToast?.("error", `❌ Errore durante il caricamento di ${file.name}`);
+      toast.error(`❌ Errore durante il caricamento di ${file.name}`);
       throw err; // blocco l’intero checkout
     }
   }
@@ -72,8 +72,9 @@ ${
           if (p.partial && p.collectedAmount > 0 && !p.collected) {
             return `🟨 ${p.label} - Incassato ${p.collectedAmount.toFixed(
               2
-            )} € / Totale ${p.amount.toFixed(2)} € (Rimane ${(p.amount -
-              p.collectedAmount).toFixed(2)} €)`;
+            )} € / Totale ${p.amount.toFixed(2)} € (Rimane ${(
+              p.amount - p.collectedAmount
+            ).toFixed(2)} €)`;
           }
           return `⬜ ${p.label} - Da incassare ${p.amount.toFixed(2)} €`;
         })
@@ -112,7 +113,6 @@ export default function JobCheckoutModal({
   setCheckoutOpen,
   checkingOut,
   setCheckingOut,
-  showToast,
   loadData,
   currentUser,
 }: {
@@ -125,7 +125,6 @@ export default function JobCheckoutModal({
   setCheckoutOpen: (v: boolean) => void;
   checkingOut: boolean;
   setCheckingOut: (v: boolean) => void;
-  showToast?: (t: "success" | "error", m: string) => void;
   loadData?: () => Promise<void>;
   currentUser: { id: string; name: string; role: string };
 }) {
@@ -152,7 +151,7 @@ export default function JobCheckoutModal({
 
   const confirmCheckout = async () => {
     if (!ultimato) {
-      showToast?.("error", "⚠️ Seleziona un esito prima di procedere");
+      toast.error("⚠️ Seleziona un esito prima di procedere");
       return;
     }
 
@@ -162,7 +161,7 @@ export default function JobCheckoutModal({
     try {
       // 1) Upload allegati con indice checkout (con toast descrittivi)
       if (files.length > 0) {
-        await uploadFineLavoro(job.id, files, currentUser.id, checkoutIndex, showToast);
+        await uploadFineLavoro(job.id, files, currentUser.id, checkoutIndex);
       }
 
       // 2) Salva evento checkout con report
@@ -177,11 +176,11 @@ export default function JobCheckoutModal({
       // 4) Refresh UI
       await loadData?.();
       setCompleted(true);
-      showToast?.("success", "✅ Checkout effettuato con successo!");
+      toast.success("✅ Checkout effettuato con successo!");
     } catch (err: any) {
       console.error("Errore nel checkout:", err);
       // NB: i toast specifici dei file falliti vengono già mostrati da uploadFineLavoro
-      showToast?.("error", err.message || "Errore durante il checkout");
+      toast.error(err.message || "Errore durante il checkout");
     } finally {
       setCheckingOut(false);
     }
@@ -310,9 +309,9 @@ export default function JobCheckoutModal({
                         className="flex justify-between items-center border p-2 rounded-md bg-gray-50"
                       >
                         <div>
-                          {`fine_lavoro_${checkoutIndex}_${new Date()
-                            .toISOString()
-                            .split("T")[0]}.${ext}`}
+                          {`fine_lavoro_${checkoutIndex}_${
+                            new Date().toISOString().split("T")[0]
+                          }.${ext}`}
                           <span className="ml-2 text-xs text-gray-500">
                             {(f.size / 1024 / 1024).toFixed(2)} MB
                           </span>

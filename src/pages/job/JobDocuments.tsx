@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Documento } from "@/types";
 import { supabase } from "@/supabaseClient";
 import { documentAPI } from "@/api/documentAPI";
-import toast, { Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 interface JobDocumentsProps {
   orderDocs: Documento[];
@@ -45,10 +45,14 @@ export default function JobDocuments({
 
       for (const file of Array.from(files)) {
         const path = `jobs/${jobId}/${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
+        const { error: upErr } = await supabase.storage
+          .from(BUCKET)
+          .upload(path, file);
         if (upErr) throw upErr;
 
-        const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        const { data: urlData } = supabase.storage
+          .from(BUCKET)
+          .getPublicUrl(path);
         const publicUrl = urlData.publicUrl;
 
         const added = await documentAPI.addToJob(jobId, {
@@ -80,7 +84,9 @@ export default function JobDocuments({
       const publicIdx = parts.findIndex((p) => p === "public");
       const key = parts.slice(publicIdx + 2).join("/");
 
-      const { error: stErr } = await supabase.storage.from(BUCKET).remove([key]);
+      const { error: stErr } = await supabase.storage
+        .from(BUCKET)
+        .remove([key]);
       if (stErr) throw stErr;
 
       await documentAPI.deleteFromJob(doc.id);
@@ -98,7 +104,6 @@ export default function JobDocuments({
 
   return (
     <>
-      <Toaster position="top-right" />
       <Card>
         <CardHeader>
           <CardTitle>📂 Documenti</CardTitle>
@@ -129,7 +134,9 @@ export default function JobDocuments({
                 ))}
               </ul>
             ) : (
-              <div className="text-sm text-gray-500">Nessun documento per la commessa.</div>
+              <div className="text-sm text-gray-500">
+                Nessun documento per la commessa.
+              </div>
             )}
           </div>
 
@@ -182,7 +189,9 @@ export default function JobDocuments({
                           disabled={deletingId === d.id}
                           className="text-red-600 text-xs"
                         >
-                          {deletingId === d.id ? "⏳ Eliminazione..." : "Elimina"}
+                          {deletingId === d.id
+                            ? "⏳ Eliminazione..."
+                            : "Elimina"}
                         </button>
                       )}
                     </li>
@@ -190,7 +199,9 @@ export default function JobDocuments({
                 })}
               </ul>
             ) : (
-              <div className="text-sm text-gray-500">Nessun documento per l’intervento.</div>
+              <div className="text-sm text-gray-500">
+                Nessun documento per l’intervento.
+              </div>
             )}
 
             {canEdit && (
@@ -203,7 +214,9 @@ export default function JobDocuments({
                     disabled={uploading}
                     className="hidden"
                   />
-                  {uploading ? "⏳ Caricamento in corso..." : "📤 Trascina file o clicca per caricare"}
+                  {uploading
+                    ? "⏳ Caricamento in corso..."
+                    : "📤 Trascina file o clicca per caricare"}
                 </label>
               </div>
             )}

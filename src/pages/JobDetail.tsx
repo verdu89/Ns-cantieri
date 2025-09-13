@@ -6,7 +6,15 @@ import { documentAPI } from "@/api/documentAPI";
 import { jobOrderAPI } from "@/api/jobOrders";
 import { customerAPI } from "@/api/customers";
 import { useAuth } from "@/context/AuthContext";
-import type { Job, Worker, Payment, Documento, JobOrder, Customer } from "@/types";
+import type {
+  Job,
+  Worker,
+  Payment,
+  Documento,
+  JobOrder,
+  Customer,
+} from "@/types";
+import { toast } from "react-hot-toast";
 
 // ✅ Componenti estratti
 import JobHeader from "./job/JobHeader";
@@ -15,7 +23,6 @@ import JobPayments from "./job/JobPayments";
 import JobDocuments from "./job/JobDocuments";
 import JobNotes from "./job/JobNotes";
 import JobCheckoutModal from "./job/JobCheckoutModal";
-import Toast from "./job/Toast";
 import { Button } from "@/components/ui/Button";
 import JobCheckoutReport from "./job/JobCheckoutReport";
 
@@ -64,21 +71,6 @@ export default function JobDetail() {
   const [assignedWorkers, setAssignedWorkers] = useState<string[]>([]);
   const [plannedLocal, setPlannedLocal] = useState<string>("");
 
-  const [toast, setToast] = useState<{
-    show: boolean;
-    type: "success" | "error";
-    message: string;
-  }>({
-    show: false,
-    type: "success",
-    message: "",
-  });
-
-  const showToast = (type: "success" | "error", message: string) => {
-    setToast({ show: true, type, message });
-    window.setTimeout(() => setToast((t) => ({ ...t, show: false })), 2500);
-  };
-
   /* ========== Load Data ========== */
   const loadData = useCallback(async () => {
     if (!jobId) {
@@ -91,7 +83,10 @@ export default function JobDetail() {
       setLoading(true);
 
       // 1) Carico job e workers
-      const [j, w] = await Promise.all([jobAPI.getById(jobId), workerAPI.list()]);
+      const [j, w] = await Promise.all([
+        jobAPI.getById(jobId),
+        workerAPI.list(),
+      ]);
       if (!j) {
         setError("Intervento non trovato.");
         setJob(null);
@@ -112,9 +107,13 @@ export default function JobDetail() {
 
       // 3) Carico docs commessa, docs job, commessa
       const [oDocs, jDocs, orderObj] = await Promise.all([
-        orderId ? documentAPI.listByOrder(orderId) : Promise.resolve<Documento[]>([]),
+        orderId
+          ? documentAPI.listByOrder(orderId)
+          : Promise.resolve<Documento[]>([]),
         documentAPI.listByJob(jobId),
-        orderId ? jobOrderAPI.getById(orderId) : Promise.resolve<JobOrder | null>(null),
+        orderId
+          ? jobOrderAPI.getById(orderId)
+          : Promise.resolve<JobOrder | null>(null),
       ]);
 
       setOrderDocs(oDocs);
@@ -139,6 +138,7 @@ export default function JobDetail() {
       setWorkers(w ?? []);
     } catch (e) {
       console.error("Errore loadData JobDetail:", e);
+      toast.error("Errore durante il caricamento.");
       setError("Errore durante il caricamento.");
     } finally {
       setLoading(false);
@@ -150,21 +150,28 @@ export default function JobDetail() {
   }, [loadData]);
 
   /* ========== Guard ========== */
-  if (loading && !job) return <div className="p-6">Caricamento intervento...</div>;
+  if (loading && !job)
+    return <div className="p-6">Caricamento intervento...</div>;
   if (error && !job) return <div className="p-6 text-red-600">{error}</div>;
-  if (!job) return <div className="p-6 text-red-600">Intervento non trovato</div>;
+  if (!job)
+    return <div className="p-6 text-red-600">Intervento non trovato</div>;
 
   /* ========== Logica bottone checkout ========== */
   const canDoCheckout =
     (currentUser.role === "montatore" &&
       (job.status === "in_corso" || job.status === "in_ritardo")) ||
-    (isBackoffice && ["assegnato", "in_corso", "in_ritardo"].includes(job.status));
+    (isBackoffice &&
+      ["assegnato", "in_corso", "in_ritardo"].includes(job.status));
 
   /* ========== Render ========== */
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <JobHeader job={job} order={order || undefined} customer={customer || undefined} />
+      <JobHeader
+        job={job}
+        order={order || undefined}
+        customer={customer || undefined}
+      />
 
       {/* STATO & PROGRAMMAZIONE */}
       {isBackoffice && (
@@ -177,7 +184,6 @@ export default function JobDetail() {
           setStatus={(s) => setJob((j) => (j ? { ...j, status: s } : j))}
           plannedLocal={plannedLocal}
           setPlannedLocal={setPlannedLocal}
-          showToast={showToast}
         />
       )}
 
@@ -187,8 +193,9 @@ export default function JobDetail() {
         payments={payments}
         setPayments={setPayments}
         isBackoffice={isBackoffice}
-        currentUserRole={currentUser.role as "montatore" | "backoffice" | "admin"}
-        showToast={showToast}
+        currentUserRole={
+          currentUser.role as "montatore" | "backoffice" | "admin"
+        }
       />
 
       {/* DOCUMENTI */}
@@ -199,12 +206,10 @@ export default function JobDetail() {
         currentUserId={currentUser.id}
         jobId={job.id}
         canEdit={true}
-        showToast={showToast}
       />
 
       {/* NOTE INTERVENTO CORRENTI */}
-      <JobNotes job={job} setJob={setJob} orderNotes={orderNotes} showToast={showToast} />
-
+      <JobNotes job={job} setJob={setJob} orderNotes={orderNotes} />
 
       {/* OPERATIVITÀ / CHECKOUT */}
       {canDoCheckout && (
@@ -223,8 +228,6 @@ export default function JobDetail() {
         <JobCheckoutReport job={job} docs={docs} />
       </div>
 
-      
-
       {/* MODALE CHECKOUT */}
       {checkoutOpen && (
         <JobCheckoutModal
@@ -237,14 +240,10 @@ export default function JobDetail() {
           setCheckoutOpen={setCheckoutOpen}
           checkingOut={checkingOut}
           setCheckingOut={setCheckingOut}
-          showToast={showToast}
           loadData={loadData}
-          currentUser={currentUser} // 🔹 passa user al modal
+          currentUser={currentUser}
         />
       )}
-
-      {/* TOAST */}
-      {toast.show && <Toast toast={toast} />}
     </div>
   );
 }

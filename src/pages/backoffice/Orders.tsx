@@ -4,8 +4,8 @@ import { jobOrderAPI } from "../../api/jobOrders";
 import { customerAPI } from "../../api/customers";
 import { jobAPI } from "../../api/jobs";
 import type { JobOrder, Customer, Job } from "../../types";
-import { useToast } from "../../context/ToastContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "react-hot-toast";
 
 export default function Orders() {
   const [orders, setOrders] = useState<JobOrder[]>([]);
@@ -26,8 +26,6 @@ export default function Orders() {
   // stato per confirm dialog
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-
-  const { showToast } = useToast();
 
   useEffect(() => {
     jobOrderAPI.list().then(setOrders);
@@ -55,8 +53,7 @@ export default function Orders() {
       !selectedCustomer ||
       (!formData.location?.address && !formData.location?.mapsUrl)
     ) {
-      showToast(
-        "error",
+      toast.error(
         "Numero commessa, cliente e almeno un indirizzo o link Maps sono obbligatori ❌"
       );
       return;
@@ -79,7 +76,7 @@ export default function Orders() {
             : o
         )
       );
-      showToast("success", "Commessa aggiornata ✅");
+      toast.success("Commessa aggiornata ✅");
     } else {
       const newOrder: JobOrder = {
         id: `o${Date.now()}`,
@@ -94,7 +91,7 @@ export default function Orders() {
         createdAt: new Date().toISOString(),
       };
       setOrders([...orders, newOrder]);
-      showToast("success", "Commessa creata ✅");
+      toast.success("Commessa creata ✅");
     }
 
     setFormData({});
@@ -117,8 +114,7 @@ export default function Orders() {
   const handleDelete = (id: string) => {
     const hasJobs = jobs.some((j: Job) => j.jobOrderId === id);
     if (hasJobs) {
-      showToast(
-        "error",
+      toast.error(
         "Non puoi eliminare questa commessa perché ha interventi collegati ❌"
       );
       return;
@@ -130,7 +126,7 @@ export default function Orders() {
   const confirmDelete = () => {
     if (!selectedOrderId) return;
     setOrders(orders.filter((o) => o.id !== selectedOrderId));
-    showToast("success", "Commessa eliminata ✅");
+    toast.success("Commessa eliminata ✅");
     setSelectedOrderId(null);
   };
 

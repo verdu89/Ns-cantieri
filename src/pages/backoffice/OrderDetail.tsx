@@ -18,7 +18,7 @@ import type {
 import { formatDocumento } from "../../utils/documenti";
 import { STATUS_CONFIG } from "@/config/statusConfig";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { useToast } from "../../context/ToastContext";
+import toast from "react-hot-toast";
 
 // 🔹 Per creare un job
 type JobCreate = Omit<
@@ -71,8 +71,6 @@ export default function OrderDetail() {
   const [openConfirm, setOpenConfirm] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
 
-  const { showToast } = useToast();
-
   // 🔹 carica dati commessa
   useEffect(() => {
     if (!id) return;
@@ -113,10 +111,10 @@ export default function OrderDetail() {
       const updated: JobOrder = { ...order, notes };
       await jobOrderAPI.update(order.id, updated);
       setOrder(updated);
-      showToast("success", "📝 Note commessa aggiornate con successo");
+      toast.success("📝 Note commessa aggiornate con successo");
     } catch (err) {
       console.error("Errore aggiornamento note:", err);
-      showToast("error", "Errore durante l'aggiornamento delle note ❌");
+      toast.error("Errore durante l'aggiornamento delle note ❌");
     }
   };
 
@@ -129,7 +127,7 @@ export default function OrderDetail() {
   // 🔹 salvataggio intervento
   const handleSaveJob = async () => {
     if (!formData.title) {
-      return showToast("error", "La tipologia intervento è obbligatoria ❌");
+      return toast.error("La tipologia intervento è obbligatoria ❌");
     }
 
     try {
@@ -147,7 +145,7 @@ export default function OrderDetail() {
 
         const updated = await jobAPI.update(editingId, payload);
         if (updated) {
-          showToast("success", "Intervento aggiornato ✅");
+          toast.success("Intervento aggiornato ✅");
           await reloadJobs();
         }
       } else {
@@ -170,10 +168,10 @@ export default function OrderDetail() {
 
         const created = await jobAPI.create(newJobPayload);
         if (!created) {
-          showToast("error", "Errore durante il salvataggio dell'intervento ❌");
+          toast.error("Errore durante il salvataggio dell'intervento ❌");
           return;
         }
-        showToast("success", "Intervento creato ✅");
+        toast.success("Intervento creato ✅");
         await reloadJobs();
       }
 
@@ -182,7 +180,7 @@ export default function OrderDetail() {
       setShowForm(false);
     } catch (err) {
       console.error("Errore salvataggio intervento:", err);
-      showToast("error", "Errore durante il salvataggio dell'intervento ❌");
+      toast.error("Errore durante il salvataggio dell'intervento ❌");
     }
   };
 
@@ -202,11 +200,11 @@ export default function OrderDetail() {
     if (!jobToDelete) return;
     try {
       await jobAPI.remove(jobToDelete);
-      showToast("success", "Intervento eliminato 🗑️");
+      toast.success("Intervento eliminato 🗑️");
       await reloadJobs();
     } catch (err) {
       console.error("Errore eliminazione intervento:", err);
-      showToast("error", "Errore durante l'eliminazione dell'intervento ❌");
+      toast.error("Errore durante l'eliminazione dell'intervento ❌");
     } finally {
       setJobToDelete(null);
     }
@@ -246,10 +244,10 @@ export default function OrderDetail() {
       const docs = await documentAPI.listByOrder(order.id);
       setDocumenti(docs);
 
-      showToast("success", `📤 Caricati ${files.length} file correttamente`);
+      toast.success(`📤 Caricati ${files.length} file correttamente`);
     } catch (err) {
       console.error("Errore upload file:", err);
-      showToast("error", "Errore durante il caricamento dei file ❌");
+      toast.error("Errore durante il caricamento dei file ❌");
     } finally {
       setLoadingDocs(false);
       e.target.value = "";
@@ -271,10 +269,10 @@ export default function OrderDetail() {
 
       const docs = await documentAPI.listByOrder(order.id);
       setDocumenti(docs);
-      showToast("success", "File eliminato 🗑️");
+      toast.success("File eliminato 🗑️");
     } catch (err) {
       console.error("Errore eliminazione file:", err);
-      showToast("error", "Errore durante l'eliminazione del file ❌");
+      toast.error("Errore durante l'eliminazione del file ❌");
     } finally {
       setLoadingDocs(false);
     }
@@ -291,8 +289,7 @@ export default function OrderDetail() {
 
   const totalCollected = allPayments.reduce((sum, p) => {
     if (p.collected) return sum + (p.amount ?? 0);
-    if ((p as any).partial)
-      return sum + ((p as any).collectedAmount ?? 0);
+    if ((p as any).partial) return sum + ((p as any).collectedAmount ?? 0);
     return sum;
   }, 0);
 
@@ -587,9 +584,7 @@ export default function OrderDetail() {
                 return (
                   <tr
                     key={j.id}
-                    className={`border-t ${
-                      isLateRow ? "bg-red-50" : ""
-                    }`}
+                    className={`border-t ${isLateRow ? "bg-red-50" : ""}`}
                   >
                     <td className="p-2">
                       {j.plannedDate

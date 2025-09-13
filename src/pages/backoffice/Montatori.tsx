@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Edit, Trash2 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import type { Worker } from "../../types";
-import { useToast } from "../../context/ToastContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import toast from "react-hot-toast";
 
 interface WorkerRow extends Worker {
   user_id: string;
@@ -20,8 +20,6 @@ export default function MontatoriPage() {
   // conferma eliminazione
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selected, setSelected] = useState<WorkerRow | null>(null);
-
-  const { showToast } = useToast();
 
   const load = async () => {
     setLoading(true);
@@ -44,14 +42,14 @@ export default function MontatoriPage() {
       if (!res.ok) {
         console.error("Errore list-workers:", json);
         setMontatori([]);
-        showToast("error", "Errore durante il caricamento dei montatori ❌");
+        toast.error("Errore durante il caricamento dei montatori ❌");
         return;
       }
 
       setMontatori(json.workers || []);
     } catch (err) {
       console.error("Errore caricamento montatori:", err);
-      showToast("error", "Errore di connessione ❌");
+      toast.error("Errore di connessione ❌");
     } finally {
       setLoading(false);
     }
@@ -79,7 +77,7 @@ export default function MontatoriPage() {
   async function handleSave() {
     if (!editing) return;
     if (!form.name.trim() || !form.email.trim()) {
-      showToast("error", "Nome ed email sono obbligatori ❌");
+      toast.error("Nome ed email sono obbligatori ❌");
       return;
     }
 
@@ -107,17 +105,17 @@ export default function MontatoriPage() {
       const out = await res.json();
       if (!res.ok) {
         console.error("Errore update-user:", out);
-        showToast("error", `Errore aggiornamento: ${out.error || "sconosciuto"} ❌`);
+        toast.error(`Errore aggiornamento: ${out.error || "sconosciuto"} ❌`);
         return;
       }
 
       await load();
       setModalOpen(false);
       resetForm();
-      showToast("success", "Montatore aggiornato con successo ✅");
+      toast.success("Montatore aggiornato con successo ✅");
     } catch (e) {
       console.error("Errore salvataggio montatore", e);
-      showToast("error", "Errore durante il salvataggio ❌");
+      toast.error("Errore durante il salvataggio ❌");
     }
   }
 
@@ -142,15 +140,15 @@ export default function MontatoriPage() {
       const out = await res.json();
       if (!res.ok) {
         console.error("Errore delete-user:", out);
-        showToast("error", `Errore eliminazione: ${out.error || "sconosciuto"} ❌`);
+        toast.error(`Errore eliminazione: ${out.error || "sconosciuto"} ❌`);
         return;
       }
 
       setMontatori((prev) => prev.filter((x) => x.id !== selected.id));
-      showToast("success", "Montatore eliminato con successo ✅");
+      toast.success("Montatore eliminato con successo ✅");
     } catch (e) {
       console.error("Errore eliminazione montatore", e);
-      showToast("error", "Errore durante l'eliminazione ❌");
+      toast.error("Errore durante l'eliminazione ❌");
     } finally {
       setSelected(null);
     }
@@ -177,7 +175,9 @@ export default function MontatoriPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="p-4 text-center">Caricamento…</td>
+                <td colSpan={4} className="p-4 text-center">
+                  Caricamento…
+                </td>
               </tr>
             ) : montatori.length > 0 ? (
               montatori.map((m) => (
@@ -280,7 +280,9 @@ export default function MontatoriPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium">Email (Auth)</label>
+                <label className="block text-sm font-medium">
+                  Email (Auth)
+                </label>
                 <input
                   type="email"
                   className="w-full border rounded px-3 py-2"

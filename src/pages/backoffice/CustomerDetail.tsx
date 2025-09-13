@@ -5,7 +5,7 @@ import { jobOrderAPI } from "../../api/jobOrders";
 import { jobAPI } from "../../api/jobs";
 import type { Customer, JobOrder, Job } from "../../types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { useToast } from "../../context/ToastContext";
+import { toast } from "react-hot-toast";
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -25,8 +25,6 @@ export default function CustomerDetail() {
   // conferma eliminazione
   const [openConfirm, setOpenConfirm] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
-
-  const { showToast } = useToast();
 
   useEffect(() => {
     if (!id) return;
@@ -66,7 +64,9 @@ export default function CustomerDetail() {
       !formData.code ||
       (!formData.location?.address && !formData.location?.mapsUrl)
     ) {
-      showToast("error", "La commessa deve avere un indirizzo o un link Google Maps ❌");
+      toast.error(
+        "La commessa deve avere un indirizzo o un link Google Maps ❌"
+      );
       return;
     }
 
@@ -82,7 +82,7 @@ export default function CustomerDetail() {
           notes: formData.notes,
         });
         setOrders(orders.map((o) => (o.id === editingId ? updated : o)));
-        showToast("success", "Commessa aggiornata con successo ✅");
+        toast.success("Commessa aggiornata con successo ✅");
       } else {
         const created = await jobOrderAPI.create({
           code: formData.code!,
@@ -94,7 +94,7 @@ export default function CustomerDetail() {
           notes: formData.notes,
         });
         setOrders([...orders, created]);
-        showToast("success", "Commessa creata con successo ✅");
+        toast.success("Commessa creata con successo ✅");
       }
 
       setFormData({});
@@ -102,7 +102,7 @@ export default function CustomerDetail() {
       setShowForm(false);
     } catch (err) {
       console.error("❌ Errore salvataggio commessa:", err);
-      showToast("error", "Errore durante il salvataggio della commessa ❌");
+      toast.error("Errore durante il salvataggio della commessa ❌");
     }
   };
 
@@ -115,7 +115,9 @@ export default function CustomerDetail() {
   const handleDelete = (orderId: string) => {
     const hasJobs = jobs.some((j: Job) => j.jobOrderId === orderId);
     if (hasJobs) {
-      showToast("error", "Non puoi eliminare questa commessa perché ha interventi collegati ❌");
+      toast.error(
+        "Non puoi eliminare questa commessa perché ha interventi collegati ❌"
+      );
       return;
     }
     setOrderToDelete(orderId);
@@ -127,10 +129,10 @@ export default function CustomerDetail() {
     try {
       await jobOrderAPI.remove(orderToDelete);
       setOrders(orders.filter((o) => o.id !== orderToDelete));
-      showToast("success", "Commessa eliminata con successo ✅");
+      toast.success("Commessa eliminata con successo ✅");
     } catch (err) {
       console.error("❌ Errore eliminazione commessa:", err);
-      showToast("error", "Errore durante l'eliminazione della commessa ❌");
+      toast.error("Errore durante l'eliminazione della commessa ❌");
     } finally {
       setOrderToDelete(null);
     }
@@ -295,9 +297,7 @@ export default function CustomerDetail() {
                   )}
                 </div>
                 {o.notes && (
-                  <div className="text-sm mt-1 text-gray-700">
-                    📝 {o.notes}
-                  </div>
+                  <div className="text-sm mt-1 text-gray-700">📝 {o.notes}</div>
                 )}
                 <div className="flex gap-2 mt-3">
                   <Link

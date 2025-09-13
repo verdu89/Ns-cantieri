@@ -50,12 +50,12 @@ export interface JobEvent {
 export interface Payment {
   id: string;
   jobId: string;
-  label: string; 
+  label: string;
   amount: number;
-  collected: boolean; 
+  collected: boolean;
   createdAt?: string | null;
   notes?: string;
-  partial: boolean;       
+  partial: boolean;
   collectedAmount: number;
 }
 
@@ -66,9 +66,8 @@ export interface Worker {
   name: string;
   phone?: string;
   createdAt?: string;
-  email?:string;
-  
-  
+  email?: string;
+  role?: string;
 }
 
 // Documenti (sia commessa che job)
@@ -111,16 +110,15 @@ export type JobCreate = Omit<
   "id" | "events" | "customer" | "team" | "payments" | "docs"
 >;
 
-
 // ===== Utenti (AuthContext) =====
 // src/types/User.ts
 
 export type UserRole = "worker" | "backoffice" | "admin";
 
 export interface User {
-  id: string;          // id dell'utente Supabase (auth.users)
-  email: string;       // email dell'utente Supabase
-  workerId: string;    // id del record nella tabella workers
-  name: string;        // nome del worker (colonna "name" in workers)
-  role: UserRole;      // ruolo (worker, backoffice, admin)
+  id: string; // id dell'utente Supabase (auth.users)
+  email: string; // email dell'utente Supabase
+  workerId: string; // id del record nella tabella workers
+  name: string; // nome del worker (colonna "name" in workers)
+  role: UserRole; // ruolo (worker, backoffice, admin)
 }

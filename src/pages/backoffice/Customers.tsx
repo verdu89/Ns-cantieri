@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { customerAPI } from "../../api/customers";
 import type { Customer } from "../../types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { useToast } from "../../context/ToastContext";
+import { toast } from "react-hot-toast";
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -21,8 +21,6 @@ export default function Customers() {
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { showToast } = useToast();
-
   // 🔹 caricamento dati dal backend
   useEffect(() => {
     customerAPI.list().then((data) => {
@@ -39,7 +37,7 @@ export default function Customers() {
 
   const handleSave = async () => {
     if (!formData.name) {
-      showToast("error", "Il nome cliente è obbligatorio ❌");
+      toast.error("Il nome cliente è obbligatorio ❌");
       return;
     }
 
@@ -57,10 +55,10 @@ export default function Customers() {
       setFormData({});
       setEditingId(null);
       setShowForm(false);
-      showToast("success", "Cliente salvato con successo ✅");
+      toast.success("Cliente salvato con successo ✅");
     } catch (err) {
       console.error("❌ Errore salvataggio cliente:", err);
-      showToast("error", "Errore durante il salvataggio del cliente ❌");
+      toast.error("Errore durante il salvataggio del cliente ❌");
     }
   };
 
@@ -80,10 +78,10 @@ export default function Customers() {
     try {
       await customerAPI.remove(selectedId);
       setCustomers(customers.filter((c) => c.id !== selectedId));
-      showToast("success", "Cliente eliminato con successo ✅");
+      toast.success("Cliente eliminato con successo ✅");
     } catch (err) {
       console.error("❌ Errore eliminazione cliente:", err);
-      showToast("error", "Errore durante l'eliminazione del cliente ❌");
+      toast.error("Errore durante l'eliminazione del cliente ❌");
     } finally {
       setSelectedId(null);
     }
@@ -93,9 +91,7 @@ export default function Customers() {
     .filter((c) =>
       [c.name, c.phone, c.email, c.notes]
         .filter(Boolean)
-        .some((field) =>
-          field!.toLowerCase().includes(search.toLowerCase())
-        )
+        .some((field) => field!.toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) =>
       sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
@@ -192,18 +188,13 @@ export default function Customers() {
       {/* Mobile: cards */}
       <div className="md:hidden space-y-3">
         {filteredCustomers.map((c) => (
-          <div
-            key={c.id}
-            className="border rounded-lg shadow-sm p-3 bg-white"
-          >
+          <div key={c.id} className="border rounded-lg shadow-sm p-3 bg-white">
             <div className="font-bold text-lg">{c.name}</div>
             <div className="text-sm text-gray-600">
               📞 {c.phone ?? "-"} | ✉️ {c.email ?? "-"}
             </div>
             {c.notes && (
-              <div className="text-sm mt-1 text-gray-700">
-                📝 {c.notes}
-              </div>
+              <div className="text-sm mt-1 text-gray-700">📝 {c.notes}</div>
             )}
             <div className="flex gap-2 mt-3">
               <Link

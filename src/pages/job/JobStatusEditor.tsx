@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Job, Worker } from "@/types";
 import { supabase } from "@/supabaseClient"; // 👈 controlla il path corretto
 import { STATUS_CONFIG } from "@/config/statusConfig";
+import { toast } from "react-hot-toast";
 
 interface JobStatusEditorProps {
   job: Job;
@@ -13,7 +14,6 @@ interface JobStatusEditorProps {
   setStatus: (s: Job["status"]) => void;
   plannedLocal: string;
   setPlannedLocal: (val: string) => void;
-  showToast?: (type: "success" | "error", msg: string) => void;
 }
 
 export default function JobStatusEditor({
@@ -25,7 +25,6 @@ export default function JobStatusEditor({
   setStatus,
   plannedLocal,
   setPlannedLocal,
-  showToast,
 }: JobStatusEditorProps) {
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
@@ -39,21 +38,28 @@ export default function JobStatusEditor({
   };
 
   // Salva modifiche su Supabase
-  const handleSave = async (updates: Record<string, any>, successMsg: string) => {
+  const handleSave = async (
+    updates: Record<string, any>,
+    successMsg: string
+  ) => {
     try {
       setSaving(true);
-      const { error } = await supabase.from("jobs").update(updates).eq("id", job.id);
+      const { error } = await supabase
+        .from("jobs")
+        .update(updates)
+        .eq("id", job.id);
 
       if (error) throw error;
 
       if (updates.status) setStatus(updates.status);
       if (updates.planned_date) setPlannedLocal(updates.planned_date);
-      if (updates.assigned_workers) setAssignedWorkers(updates.assigned_workers);
+      if (updates.assigned_workers)
+        setAssignedWorkers(updates.assigned_workers);
 
-      showToast?.("success", successMsg);
+      toast.success(successMsg);
     } catch (err: any) {
       console.error(err);
-      showToast?.("error", "Errore durante il salvataggio");
+      toast.error("Errore durante il salvataggio");
     } finally {
       setSaving(false);
     }
@@ -61,7 +67,7 @@ export default function JobStatusEditor({
 
   const handleAssign = () => {
     if (!plannedLocal || assignedWorkers.length === 0) {
-      showToast?.("error", "Seleziona data e almeno un montatore");
+      toast.error("Seleziona data e almeno un montatore");
       return;
     }
 

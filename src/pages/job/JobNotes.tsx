@@ -2,15 +2,15 @@ import { useState } from "react";
 import type { Job } from "@/types";
 import { jobAPI } from "@/api/jobs";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { toast } from "react-hot-toast";
 
 interface JobNotesProps {
   job: Job;
   setJob: React.Dispatch<React.SetStateAction<Job | null>>; // ✅ tip corretto
   orderNotes?: string; // note commessa (solo lettura)
-  showToast?: (type: "success" | "error", message: string) => void;
 }
 
-export default function JobNotes({ job, setJob, orderNotes, showToast }: JobNotesProps) {
+export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
   const [notes, setNotes] = useState(job.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -20,15 +20,15 @@ export default function JobNotes({ job, setJob, orderNotes, showToast }: JobNote
     try {
       const updated = await jobAPI.update(job.id, { notes });
       if (updated) {
-        setJob(prev =>
+        setJob((prev) =>
           prev ? { ...prev, ...updated, events: prev.events } : updated
         );
-        showToast?.("success", "📝 Note intervento aggiornate");
+        toast.success("📝 Note intervento aggiornate");
         setEditing(false);
       }
     } catch (err) {
       console.error("Errore salvataggio note:", err);
-      showToast?.("error", "Errore durante il salvataggio delle note");
+      toast.error("Errore durante il salvataggio delle note ❌");
     } finally {
       setSaving(false);
     }
@@ -52,7 +52,9 @@ export default function JobNotes({ job, setJob, orderNotes, showToast }: JobNote
 
         {/* NOTE INTERVENTO */}
         <div>
-          <h3 className="text-md font-semibold mb-2 pt-2">🛠️ Note intervento corrente</h3>
+          <h3 className="text-md font-semibold mb-2 pt-2">
+            🛠️ Note intervento corrente
+          </h3>
 
           {!editing ? (
             <>

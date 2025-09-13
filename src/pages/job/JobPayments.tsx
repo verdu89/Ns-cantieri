@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Job, Payment } from "@/types";
+import { toast } from "react-hot-toast";
 
 interface JobPaymentsProps {
   job: Job;
@@ -10,7 +11,6 @@ interface JobPaymentsProps {
   setPayments: (p: Payment[]) => void;
   isBackoffice: boolean;
   currentUserRole: string; // "admin" | "backoffice" | "worker"
-  showToast?: (type: "success" | "error", msg: string) => void;
 }
 
 export default function JobPayments({
@@ -19,7 +19,6 @@ export default function JobPayments({
   setPayments,
   isBackoffice,
   currentUserRole,
-  showToast,
 }: JobPaymentsProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,10 +81,10 @@ export default function JobPayments({
 
       setPayments(mapped);
       setEditing(false);
-      showToast?.("success", "Pagamenti aggiornati");
+      toast.success("Pagamenti aggiornati ✅");
     } catch (err) {
       console.error(err);
-      showToast?.("error", "Errore nel salvataggio");
+      toast.error("Errore nel salvataggio ❌");
     } finally {
       setSaving(false);
     }
@@ -115,7 +114,7 @@ export default function JobPayments({
       }
     } catch (err) {
       console.error(err);
-      showToast?.("error", "Errore aggiornamento pagamento");
+      toast.error("Errore aggiornamento pagamento ❌");
     }
   };
 
