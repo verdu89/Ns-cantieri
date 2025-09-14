@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Job, Worker } from "@/types";
-import { supabase } from "@/supabaseClient"; // 👈 controlla il path corretto
+import { supabase } from "@/supabaseClient";
 import { STATUS_CONFIG } from "@/config/statusConfig";
 import { toast } from "react-hot-toast";
 
@@ -37,7 +37,12 @@ export default function JobStatusEditor({
     icon: "❓",
   };
 
-  // Salva modifiche su Supabase
+  // 🔹 prendi solo i montatori già assegnati al job
+  const teamWorkers = useMemo(
+    () => workers.filter((w) => assignedWorkers.includes(w.id)),
+    [workers, assignedWorkers]
+  );
+
   const handleSave = async (
     updates: Record<string, any>,
     successMsg: string
@@ -74,7 +79,7 @@ export default function JobStatusEditor({
     handleSave(
       {
         status: "assegnato",
-        planned_date: plannedLocal ? plannedLocal + ":00" : null, // 👈 datetime-local -> stringa completa
+        planned_date: plannedLocal ? plannedLocal + ":00" : null,
         assigned_workers: assignedWorkers,
       },
       "Lavoro assegnato con successo"
@@ -104,12 +109,11 @@ export default function JobStatusEditor({
         {/* Squadra attuale */}
         <div className="text-sm">
           <div className="font-medium mb-1">Squadra assegnata</div>
-          {assignedWorkers.length > 0 ? (
+          {teamWorkers.length > 0 ? (
             <ul className="list-disc pl-5 space-y-1">
-              {assignedWorkers.map((wid) => {
-                const worker = workers.find((w) => w.id === wid);
-                return <li key={wid}>👷 {worker?.name ?? wid}</li>;
-              })}
+              {teamWorkers.map((w) => (
+                <li key={w.id}>👷 {w.name}</li>
+              ))}
             </ul>
           ) : (
             <div className="text-gray-500">Nessun tecnico assegnato</div>
@@ -117,13 +121,13 @@ export default function JobStatusEditor({
         </div>
 
         {/* Azioni */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={() => {
               setShowAssignForm(!showAssignForm);
               setShowOverride(false);
             }}
-            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm hover:bg-blue-200"
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             📌 Assegna lavoro
           </button>
@@ -132,7 +136,7 @@ export default function JobStatusEditor({
               setShowOverride(!showOverride);
               setShowAssignForm(false);
             }}
-            className="px-3 py-1 bg-orange-100 text-orange-700 rounded-md text-sm hover:bg-orange-200"
+            className="w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
           >
             📝 Modifica stato
           </button>
@@ -171,20 +175,28 @@ export default function JobStatusEditor({
                           );
                         }
                       }}
-                      className="rounded border-gray-300"
+                      className="w-4 h-4 rounded border-gray-300 accent-blue-600"
                     />
                     {w.name}
                   </label>
                 ))}
               </div>
             </div>
-            <button
-              onClick={handleAssign}
-              disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? "⏳ Salvataggio..." : "Conferma assegnazione"}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => setShowAssignForm(false)}
+                className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleAssign}
+                disabled={saving}
+                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saving ? "⏳ Salvataggio..." : "Conferma assegnazione"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -209,13 +221,21 @@ export default function JobStatusEditor({
                 )
               )}
             </select>
-            <button
-              onClick={handleSaveOverride}
-              disabled={saving}
-              className="mt-2 px-4 py-2 bg-orange-600 text-white rounded-md text-sm hover:bg-orange-700 disabled:opacity-50"
-            >
-              {saving ? "⏳ Salvataggio..." : "Salva stato"}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+              <button
+                onClick={() => setShowOverride(false)}
+                className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleSaveOverride}
+                disabled={saving}
+                className="w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50"
+              >
+                {saving ? "⏳ Salvataggio..." : "Salva stato"}
+              </button>
+            </div>
           </div>
         )}
       </CardContent>

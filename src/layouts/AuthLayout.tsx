@@ -11,7 +11,12 @@ const AuthLayoutFullBg = () => {
         className="absolute inset-0 w-full h-full object-cover"
         initial={{ scale: 1.1 }}
         animate={{ scale: 1 }}
-        transition={{ duration: 20, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          repeatType: "reverse",
+          ease: "easeInOut",
+        }}
       />
 
       {/* Overlay gradiente */}

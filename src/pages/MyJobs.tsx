@@ -45,7 +45,7 @@ export default function MyJobs() {
   );
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("all");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc"); // 🔹 nuovo stato
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     async function load() {
@@ -114,10 +114,14 @@ export default function MyJobs() {
       });
     }
 
-    // 🔹 Sort per data con ordine variabile
+    // 🔹 Sort per data
     res.sort((a, b) => {
-      const aTime = a.plannedDate ? new Date(a.plannedDate).getTime() : Infinity;
-      const bTime = b.plannedDate ? new Date(b.plannedDate).getTime() : Infinity;
+      const aTime = a.plannedDate
+        ? new Date(a.plannedDate).getTime()
+        : Infinity;
+      const bTime = b.plannedDate
+        ? new Date(b.plannedDate).getTime()
+        : Infinity;
       return sortOrder === "asc" ? aTime - bTime : bTime - aTime;
     });
 
@@ -127,16 +131,16 @@ export default function MyJobs() {
   if (loading) {
     return (
       <div className="p-6 flex items-center gap-2 text-gray-600">
-        <Loader2 className="animate-spin" /> Caricamento lavori…
+        <Loader2 className="animate-spin" /> ⏳ Caricamento lavori…
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header + Filtri */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">
+        <h1 className="text-xl sm:text-2xl font-bold">
           {user?.role === "worker" ? "👷 I miei lavori" : "📋 Tutti i lavori"}
         </h1>
 
@@ -147,7 +151,7 @@ export default function MyJobs() {
             onChange={(e) =>
               setFilterStatus(e.target.value as EffectiveStatus | "all")
             }
-            className="border rounded-xl px-3 py-2 text-sm"
+            className="border rounded-lg px-3 py-2 text-sm"
           >
             <option value="all">Tutti</option>
             {(
@@ -173,17 +177,17 @@ export default function MyJobs() {
           {/* Ricerca cliente */}
           <input
             type="text"
-            placeholder="Cerca cliente…"
+            placeholder="🔍 Cerca cliente…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border rounded-xl px-3 py-2 text-sm"
+            className="border rounded-lg px-3 py-2 text-sm"
           />
 
           {/* Filtri rapidi data */}
           <div className="flex gap-2">
             <button
               onClick={() => setDateFilter("all")}
-              className={`px-3 py-2 rounded-xl text-sm ${
+              className={`px-3 py-2 rounded-lg text-sm ${
                 dateFilter === "all"
                   ? "bg-blue-600 text-white"
                   : "border text-gray-600 hover:bg-gray-100"
@@ -193,7 +197,7 @@ export default function MyJobs() {
             </button>
             <button
               onClick={() => setDateFilter("today")}
-              className={`px-3 py-2 rounded-xl text-sm ${
+              className={`px-3 py-2 rounded-lg text-sm ${
                 dateFilter === "today"
                   ? "bg-blue-600 text-white"
                   : "border text-gray-600 hover:bg-gray-100"
@@ -203,7 +207,7 @@ export default function MyJobs() {
             </button>
             <button
               onClick={() => setDateFilter("week")}
-              className={`px-3 py-2 rounded-xl text-sm ${
+              className={`px-3 py-2 rounded-lg text-sm ${
                 dateFilter === "week"
                   ? "bg-blue-600 text-white"
                   : "border text-gray-600 hover:bg-gray-100"
@@ -218,7 +222,7 @@ export default function MyJobs() {
             onClick={() =>
               setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
             }
-            className="flex items-center gap-1 px-3 py-2 rounded-xl border text-sm hover:bg-gray-100"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg border text-sm hover:bg-gray-100"
           >
             <ArrowDownUp size={16} />
             {sortOrder === "asc" ? "Data ↑" : "Data ↓"}
@@ -248,15 +252,15 @@ export default function MyJobs() {
               <Link
                 key={job.id}
                 to={`/jobs/${job.id}`}
-                className="block border rounded-2xl p-4 bg-white shadow-sm hover:shadow-md transition-transform hover:-translate-y-0.5"
+                className="block border rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-transform hover:-translate-y-0.5"
               >
                 <div className="flex justify-between items-center">
-                  <h2 className="font-medium truncate">
+                  <h2 className="font-semibold truncate">
                     {job.title} · {job.customer?.name ?? "Cliente N/D"}
                   </h2>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      cfg?.color ?? "bg-gray-100 text-gray-700"
+                      cfg?.color ?? "bg-gray-200 text-gray-700"
                     }`}
                   >
                     {cfg?.icon} {cfg?.label ?? job.effectiveStatus}

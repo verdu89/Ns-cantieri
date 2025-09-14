@@ -23,7 +23,6 @@ import JobPayments from "./job/JobPayments";
 import JobDocuments from "./job/JobDocuments";
 import JobNotes from "./job/JobNotes";
 import JobCheckoutModal from "./job/JobCheckoutModal";
-import { Button } from "@/components/ui/Button";
 import JobCheckoutReport from "./job/JobCheckoutReport";
 
 /* ===================== MAIN ===================== */
@@ -151,7 +150,9 @@ export default function JobDetail() {
 
   /* ========== Guard ========== */
   if (loading && !job)
-    return <div className="p-6">Caricamento intervento...</div>;
+    return (
+      <div className="p-6 text-gray-600">⏳ Caricamento intervento...</div>
+    );
   if (error && !job) return <div className="p-6 text-red-600">{error}</div>;
   if (!job)
     return <div className="p-6 text-red-600">Intervento non trovato</div>;
@@ -214,12 +215,12 @@ export default function JobDetail() {
       {/* OPERATIVITÀ / CHECKOUT */}
       {canDoCheckout && (
         <div className="flex justify-center py-6">
-          <Button
+          <button
             onClick={() => setCheckoutOpen(true)}
-            className="px-6 py-3 text-lg"
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             🚀 Apri Checkout
-          </Button>
+          </button>
         </div>
       )}
 

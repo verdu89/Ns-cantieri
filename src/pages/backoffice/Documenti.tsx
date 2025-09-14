@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Upload, Trash2, Download, Search } from "lucide-react";
 import { jobOrderAPI } from "../../api/jobOrders";
 import { documentAPI } from "../../api/documentAPI";
-import { jobAPI } from "../../api/jobs";
+import { jobAPI } from "../../api/jobs"; // 👈 import statico
 import type { JobOrder, Documento } from "../../types";
 import { formatDocumento } from "../../utils/documenti";
 import { supabase } from "../../supabaseClient";
@@ -49,7 +49,7 @@ export default function DocumentiPage() {
 
       const docsJob = await Promise.all(
         c.map(async (commessa) => {
-          const jobs = await jobAPI.listByOrder(commessa.id);
+          const jobs = await jobAPI.listByOrder(commessa.id); // 👈 static import
           const allDocs: DocumentoExtended[] = [];
           for (const job of jobs) {
             const d = await documentAPI.listByJob(job.id);
@@ -74,13 +74,13 @@ export default function DocumentiPage() {
   // 🔹 Upload documento su commessa
   async function handleUpload() {
     if (!uploadFile || !uploadCommessa) {
-      toast.error("Seleziona una commessa e un file");
+      toast.error("Seleziona una commessa e un file ❌");
       return;
     }
 
     const commessa = commesse.find((c) => c.id === uploadCommessa);
     if (!commessa) {
-      toast.error("Commessa non valida");
+      toast.error("Commessa non valida ❌");
       return;
     }
 
@@ -117,7 +117,7 @@ export default function DocumentiPage() {
 
       setUploadFile(null);
       setUploadCommessa("");
-      toast.success("Documento caricato ✅");
+      toast.success("Documento caricato con successo ✅");
     } catch (err) {
       console.error("Errore durante upload:", err);
       toast.error("Errore durante il caricamento ❌");
@@ -162,14 +162,14 @@ export default function DocumentiPage() {
       <Toaster position="top-right" />
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 className="text-xl md:text-2xl font-bold">Archivio Documenti</h1>
+        <h1 className="text-xl md:text-2xl font-bold">📂 Archivio Documenti</h1>
 
         {/* Barra ricerca */}
-        <div className="flex items-center border rounded px-3 py-2 w-full md:w-80 bg-white">
+        <div className="flex items-center border rounded-lg px-3 py-2 w-full md:w-80 bg-white">
           <Search className="w-4 h-4 text-gray-500 mr-2" />
           <input
             type="text"
-            placeholder="Cerca documento..."
+            placeholder="🔍 Cerca documento..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 outline-none text-sm"
@@ -182,7 +182,7 @@ export default function DocumentiPage() {
         <select
           value={filterTipo}
           onChange={(e) => setFilterTipo(e.target.value)}
-          className="border px-3 py-2 rounded w-full md:w-48"
+          className="border px-3 py-2 rounded-lg w-full md:w-48"
         >
           <option value="">Tutti i tipi</option>
           <option value="commessa">Commessa</option>
@@ -201,10 +201,10 @@ export default function DocumentiPage() {
               value={commessaSelezionata?.code || uploadCommessa}
               onChange={(e) => setUploadCommessa(e.target.value)}
               placeholder="Inserisci codice commessa..."
-              className="border px-3 py-2 rounded w-full"
+              className="border px-3 py-2 rounded-lg w-full"
             />
             {uploadCommessa.length > 0 && !commessaSelezionata && (
-              <div className="absolute z-10 bg-white border rounded shadow mt-1 max-h-40 overflow-y-auto w-full">
+              <div className="absolute z-10 bg-white border rounded-lg shadow mt-1 max-h-40 overflow-y-auto w-full">
                 {commesse
                   .filter((c) =>
                     c.code.toLowerCase().includes(uploadCommessa.toLowerCase())
@@ -225,7 +225,7 @@ export default function DocumentiPage() {
           <input
             type="file"
             onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-            className="border px-3 py-2 rounded w-full"
+            className="border px-3 py-2 rounded-lg w-full"
           />
           <button
             onClick={handleUpload}
@@ -269,14 +269,14 @@ export default function DocumentiPage() {
                       <a
                         href={d.fileUrl}
                         download
-                        className="p-2 rounded hover:bg-green-100 text-green-600"
+                        className="p-2 rounded-lg hover:bg-green-100 text-green-600"
                         title="Scarica"
                       >
                         <Download className="w-5 h-5" />
                       </a>
                       <button
                         onClick={() => setConfirmDelete(doc)}
-                        className="p-2 rounded hover:bg-red-100 text-red-600"
+                        className="p-2 rounded-lg hover:bg-red-100 text-red-600"
                         title="Elimina"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -318,21 +318,19 @@ export default function DocumentiPage() {
                 <p className="text-sm text-gray-600">
                   <strong>Data:</strong> {d.formattedDate}
                 </p>
-                <div className="flex gap-3 justify-end pt-2">
+                <div className="flex gap-2 mt-3">
                   <a
                     href={d.fileUrl}
                     download
-                    className="p-2 rounded hover:bg-green-100 text-green-600"
-                    title="Scarica"
+                    className="flex-1 text-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                   >
-                    <Download className="w-5 h-5" />
+                    ⬇️ Scarica
                   </a>
                   <button
                     onClick={() => setConfirmDelete(doc)}
-                    className="p-2 rounded hover:bg-red-100 text-red-600"
-                    title="Elimina"
+                    className="flex-1 text-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    🗑️ Elimina
                   </button>
                 </div>
               </div>

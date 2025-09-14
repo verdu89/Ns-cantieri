@@ -42,7 +42,7 @@ export default function CustomerDetail() {
   }, [id]);
 
   if (!customer) {
-    return <div className="p-6 text-red-600">Cliente non trovato</div>;
+    return <div className="p-6 text-red-600">Cliente non trovato ❌</div>;
   }
 
   const handleChange = (
@@ -155,14 +155,14 @@ export default function CustomerDetail() {
       <div className="bg-white shadow rounded-lg p-6">
         <h1 className="text-2xl font-bold mb-2">{customer.name}</h1>
         <p>
-          <strong>Telefono:</strong> {customer.phone ?? "-"}
+          <strong>📞 Telefono:</strong> {customer.phone ?? "-"}
         </p>
         <p>
-          <strong>Email:</strong> {customer.email ?? "-"}
+          <strong>✉️ Email:</strong> {customer.email ?? "-"}
         </p>
         {customer.notes && (
           <p className="mt-2 text-gray-600">
-            <strong>Note:</strong> {customer.notes}
+            <strong>📝 Note:</strong> {customer.notes}
           </p>
         )}
       </div>
@@ -170,16 +170,16 @@ export default function CustomerDetail() {
       {/* Lista commesse */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex flex-col sm:flex-row justify-between gap-3 sm:items-center mb-4">
-          <h2 className="text-xl font-bold">Commesse</h2>
+          <h2 className="text-xl font-bold">📂 Commesse</h2>
           <button
             onClick={() => {
               setFormData({});
               setEditingId(null);
               setShowForm(true);
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            + Nuova Commessa
+            ➕ Nuova Commessa
           </button>
         </div>
 
@@ -187,17 +187,17 @@ export default function CustomerDetail() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
           <input
             type="text"
-            placeholder="Cerca per numero"
+            placeholder="🔍 Cerca per numero"
             value={searchCode}
             onChange={(e) => setSearchCode(e.target.value)}
-            className="p-2 border rounded"
+            className="p-2 border rounded-lg"
           />
           <input
             type="text"
-            placeholder="Cerca per indirizzo"
+            placeholder="🔍 Cerca per indirizzo"
             value={searchAddress}
             onChange={(e) => setSearchAddress(e.target.value)}
-            className="p-2 border rounded"
+            className="p-2 border rounded-lg"
           />
         </div>
 
@@ -206,7 +206,7 @@ export default function CustomerDetail() {
           {filteredOrders.length === 0 ? (
             <p className="text-gray-500">Nessuna commessa trovata</p>
           ) : (
-            <table className="w-full border-collapse bg-white">
+            <table className="w-full border-collapse bg-white shadow rounded-lg overflow-hidden">
               <thead className="bg-gray-100 text-left">
                 <tr>
                   <th
@@ -241,22 +241,22 @@ export default function CustomerDetail() {
                       )}
                     </td>
                     <td className="p-2">{o.notes ?? "-"}</td>
-                    <td className="p-2 space-x-2">
+                    <td className="p-2 flex gap-2">
                       <Link
                         to={`/backoffice/orders/${o.id}`}
-                        className="px-2 py-1 bg-blue-600 text-white rounded"
+                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                       >
                         Apri
                       </Link>
                       <button
                         onClick={() => handleEdit(o)}
-                        className="px-2 py-1 bg-yellow-500 text-white rounded"
+                        className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                       >
                         ✏️
                       </button>
                       <button
                         onClick={() => handleDelete(o.id)}
-                        className="px-2 py-1 bg-red-600 text-white rounded"
+                        className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                       >
                         🗑️
                       </button>
@@ -302,19 +302,19 @@ export default function CustomerDetail() {
                 <div className="flex gap-2 mt-3">
                   <Link
                     to={`/backoffice/orders/${o.id}`}
-                    className="flex-1 text-center px-2 py-1 bg-blue-600 text-white rounded"
+                    className="flex-1 text-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                   >
                     Apri
                   </Link>
                   <button
                     onClick={() => handleEdit(o)}
-                    className="flex-1 text-center px-2 py-1 bg-yellow-500 text-white rounded"
+                    className="flex-1 text-center px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(o.id)}
-                    className="flex-1 text-center px-2 py-1 bg-red-600 text-white rounded"
+                    className="flex-1 text-center px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️
                   </button>
@@ -327,10 +327,10 @@ export default function CustomerDetail() {
 
       {/* Modal nuova/modifica commessa */}
       {showForm && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center p-3">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
             <h2 className="text-lg font-bold mb-4">
-              {editingId ? "Modifica Commessa" : "Nuova Commessa"}
+              {editingId ? "✏️ Modifica Commessa" : "➕ Nuova Commessa"}
             </h2>
 
             <input
@@ -339,7 +339,7 @@ export default function CustomerDetail() {
               placeholder="Numero commessa (es. 25-003) *"
               value={formData.code ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
             <input
               type="text"
@@ -347,7 +347,7 @@ export default function CustomerDetail() {
               placeholder="Indirizzo lavoro"
               value={formData.location?.address ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
             <input
               type="url"
@@ -355,14 +355,14 @@ export default function CustomerDetail() {
               placeholder="Link Google Maps"
               value={formData.location?.mapsUrl ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
             <textarea
               name="notes"
               placeholder="Note interne"
               value={formData.notes ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
             <div className="flex justify-end gap-2 mt-3">
@@ -372,13 +372,13 @@ export default function CustomerDetail() {
                   setFormData({});
                   setEditingId(null);
                 }}
-                className="px-4 py-2 bg-gray-300 rounded-lg"
+                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Salva
               </button>

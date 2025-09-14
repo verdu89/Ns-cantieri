@@ -7,51 +7,82 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/Card";
-import { Button } from "../components/ui/Button";
 import { toast } from "react-hot-toast";
 import type { Worker } from "../types";
 
 export default function Settings() {
   const { user } = useAuth();
 
-  // Stato per cambio password personale
+  // Stato cambio password personale
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Stato per admin/backoffice
+  // Stato workers
   const isAdmin = user?.role === "admin" || user?.role === "backoffice";
   const [workers, setWorkers] = useState<Worker[]>([]);
-  const [selectedWorker, setSelectedWorker] = useState(""); // userId del worker
+  const [selectedWorker, setSelectedWorker] = useState("");
   const [adminNewPassword, setAdminNewPassword] = useState("");
 
-  // Carico workers se admin (alias user_id → userId)
+  // Carico workers
   useEffect(() => {
-    if (isAdmin) {
-      supabase
-        .from("workers")
-        .select("id, name, role, phone, email, created_at, user_id")
-        .then(({ data, error }) => {
-          if (error) {
-            console.error(error);
-            toast.error("❌ Errore caricamento utenti");
-          } else {
-            const mapped: Worker[] = (data ?? []).map((w: any) => ({
-              id: w.id,
-              userId: w.user_id,
-              name: w.name,
-              phone: w.phone,
-              email: w.email,
-              createdAt: w.created_at,
-              role: w.role,
-            }));
-            const nonAdmin = mapped.filter((w) => w.role !== "admin");
-            setWorkers(nonAdmin);
-          }
-        });
-    }
-  }, [isAdmin]);
+    async function loadWorkers() {
+      if (!user) return;
 
-  // Cambio password utente loggato
+      if (isAdmin) {
+        const { data, error } = await supabase
+          .from("workers")
+          .select("id, name, role, phone, user_id");
+
+        if (error) {
+          console.error("Errore caricamento workers:", error);
+          toast.error("❌ Errore caricamento utenti");
+          return;
+        }
+
+        const mapped: Worker[] = (data ?? []).map((w: any) => ({
+          id: w.id,
+          userId: w.user_id,
+          name: w.name,
+          phone: w.phone,
+          email: w.email,
+          createdAt: w.created_at,
+          role: w.role,
+        }));
+
+        setWorkers(mapped.filter((w) => w.role !== "admin"));
+      } else {
+        const { data, error } = await supabase
+          .from("workers")
+          .select("id, name, role, phone, email, created_at, user_id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Errore caricamento worker:", error);
+          toast.error("❌ Errore caricamento profilo");
+          return;
+        }
+
+        if (data) {
+          setWorkers([
+            {
+              id: data.id,
+              userId: data.user_id,
+              name: data.name,
+              phone: data.phone,
+              email: data.email,
+              createdAt: data.created_at,
+              role: data.role,
+            },
+          ]);
+        }
+      }
+    }
+
+    loadWorkers();
+  }, [isAdmin, user]);
+
+  // Cambio password personale
   async function handlePasswordChange() {
     if (!newPassword || !confirmPassword) {
       toast.error("⚠️ Compila entrambi i campi");
@@ -84,7 +115,7 @@ export default function Settings() {
     }
   }
 
-  // Admin reset password (chiama Edge Function con JWT)
+  // Reset password admin/backoffice
   async function handleAdminPasswordReset() {
     if (!selectedWorker || !adminNewPassword) {
       toast.error("⚠️ Seleziona un utente e inserisci la nuova password");
@@ -140,7 +171,7 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 p-6">
-      <h1 className="text-2xl font-semibold">⚙️ Impostazioni</h1>
+      <h1 className="text-2xl font-bold">⚙️ Impostazioni</h1>
 
       {/* Profilo */}
       <Card>
@@ -163,7 +194,7 @@ export default function Settings() {
       {/* Password personale */}
       <Card>
         <CardHeader>
-          <CardTitle>Cambia password</CardTitle>
+          <CardTitle>🔒 Cambia la tua password</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <input
@@ -180,9 +211,12 @@ export default function Settings() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="border rounded-lg px-3 py-2 w-full"
           />
-          <Button variant="primary" onClick={handlePasswordChange}>
+          <button
+            onClick={handlePasswordChange}
+            className="w-full sm:w-auto text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
             Aggiorna password
-          </Button>
+          </button>
         </CardContent>
       </Card>
 
@@ -212,9 +246,14 @@ export default function Settings() {
               onChange={(e) => setAdminNewPassword(e.target.value)}
               className="border rounded-lg px-3 py-2 w-full"
             />
-            <Button variant="primary" onClick={handleAdminPasswordReset}>
-              Reset password
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={handleAdminPasswordReset}
+                className="w-full sm:w-auto text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Reset password
+              </button>
+            </div>
           </CardContent>
         </Card>
       )}

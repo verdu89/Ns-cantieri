@@ -311,7 +311,7 @@ export default function OrderDetail() {
           {customer ? (
             <Link
               to={`/backoffice/customers/${customer.id}`}
-              className="text-blue-600 underline"
+              className="text-blue-600 underline hover:text-blue-700"
             >
               {customer.name}
             </Link>
@@ -327,7 +327,7 @@ export default function OrderDetail() {
               href={order.location.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 underline ml-2"
+              className="text-blue-600 underline hover:text-blue-700 ml-2"
             >
               Apri in Maps
             </a>
@@ -337,17 +337,17 @@ export default function OrderDetail() {
 
       {/* Note */}
       <div className="bg-white shadow rounded-lg p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-bold mb-2">Note commessa</h2>
+        <h2 className="text-lg md:text-xl font-bold mb-2">📝 Note commessa</h2>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Annota qui informazioni utili..."
-          className="w-full p-2 border rounded mb-2"
+          className="w-full p-2 border rounded-lg mb-2"
           rows={4}
         />
         <button
           onClick={handleSaveNotes}
-          className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg"
+          className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           Salva Note
         </button>
@@ -398,7 +398,7 @@ export default function OrderDetail() {
                         href={d.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline hover:text-blue-700"
                       >
                         {d.fileName}
                       </a>
@@ -409,7 +409,7 @@ export default function OrderDetail() {
                   </div>
                   <button
                     onClick={() => handleDeleteFile(d.id, d.fileUrl)}
-                    className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️ Elimina
                   </button>
@@ -423,7 +423,7 @@ export default function OrderDetail() {
       {/* Pagamenti */}
       <div className="bg-white shadow rounded-lg p-4 md:p-6">
         <h2 className="text-lg md:text-xl font-bold mb-2">
-          Riepilogo pagamenti
+          💰 Riepilogo pagamenti
         </h2>
         {allPayments.length === 0 ? (
           <p className="text-gray-500">Nessun pagamento registrato</p>
@@ -435,7 +435,7 @@ export default function OrderDetail() {
                 return (
                   <li
                     key={p.id}
-                    className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 border p-2 rounded"
+                    className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 border p-2 rounded-lg"
                   >
                     <span className="text-sm md:text-base">
                       {p.label} — {p.amount.toFixed(2)} € —{" "}
@@ -482,7 +482,7 @@ export default function OrderDetail() {
       <div className="bg-white shadow rounded-lg p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4">
           <h2 className="text-lg md:text-xl font-bold">
-            Interventi ({sortedJobs.length})
+            👷 Interventi ({sortedJobs.length})
           </h2>
           <button
             onClick={() => {
@@ -490,9 +490,9 @@ export default function OrderDetail() {
               setEditingId(null);
               setShowForm(true);
             }}
-            className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg"
+            className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            + Nuovo Intervento
+            ➕ Nuovo Intervento
           </button>
         </div>
 
@@ -540,19 +540,19 @@ export default function OrderDetail() {
                 <div className="flex gap-2 mt-3">
                   <Link
                     to={`/backoffice/jobs/${j.id}`}
-                    className="flex-1 px-2 py-1 bg-blue-600 text-white rounded text-center"
+                    className="flex-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm text-center"
                   >
                     Apri
                   </Link>
                   <button
                     onClick={() => handleEdit(j)}
-                    className="flex-1 px-2 py-1 bg-yellow-500 text-white rounded"
+                    className="flex-1 px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(j.id)}
-                    className="flex-1 px-2 py-1 bg-red-600 text-white rounded"
+                    className="flex-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️
                   </button>
@@ -613,22 +613,22 @@ export default function OrderDetail() {
                     <td className="p-2 text-sm text-gray-600 truncate max-w-[200px]">
                       {j.notes || "-"}
                     </td>
-                    <td className="p-2 space-x-2">
+                    <td className="p-2 flex gap-2">
                       <Link
                         to={`/backoffice/jobs/${j.id}`}
-                        className="px-2 py-1 bg-blue-600 text-white rounded"
+                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                       >
                         Apri
                       </Link>
                       <button
                         onClick={() => handleEdit(j)}
-                        className="px-2 py-1 bg-yellow-500 text-white rounded"
+                        className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                       >
                         ✏️
                       </button>
                       <button
                         onClick={() => handleDelete(j.id)}
-                        className="px-2 py-1 bg-red-600 text-white rounded"
+                        className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                       >
                         🗑️
                       </button>
@@ -643,10 +643,10 @@ export default function OrderDetail() {
 
       {/* Modal nuovo/modifica intervento */}
       {showForm && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center p-3">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 z-50">
           <div className="bg-white rounded-xl p-4 md:p-6 w-full max-w-md shadow-lg">
             <h2 className="text-lg md:text-xl font-bold mb-4">
-              {editingId ? "Modifica Intervento" : "Nuovo Intervento"}
+              {editingId ? "✏️ Modifica Intervento" : "➕ Nuovo Intervento"}
             </h2>
 
             <input
@@ -657,7 +657,7 @@ export default function OrderDetail() {
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
             <label className="block font-semibold mb-1">
@@ -670,7 +670,7 @@ export default function OrderDetail() {
               onChange={(e) =>
                 setFormData({ ...formData, plannedDate: e.target.value })
               }
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
             <label className="block font-semibold mb-1">Assegna squadra</label>
@@ -702,7 +702,7 @@ export default function OrderDetail() {
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
             <div className="flex flex-col md:flex-row md:justify-end gap-2">
@@ -712,13 +712,13 @@ export default function OrderDetail() {
                   setFormData({});
                   setEditingId(null);
                 }}
-                className="w-full md:w-auto px-4 py-2 bg-gray-300 rounded-lg"
+                className="w-full md:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
               </button>
               <button
                 onClick={handleSaveJob}
-                className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg"
+                className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Salva
               </button>

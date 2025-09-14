@@ -6,8 +6,8 @@ import { toast } from "react-hot-toast";
 
 interface JobNotesProps {
   job: Job;
-  setJob: React.Dispatch<React.SetStateAction<Job | null>>; // ✅ tip corretto
-  orderNotes?: string; // note commessa (solo lettura)
+  setJob: React.Dispatch<React.SetStateAction<Job | null>>;
+  orderNotes?: string;
 }
 
 export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
@@ -68,7 +68,7 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
                   setNotes(job.notes ?? "");
                   setEditing(true);
                 }}
-                className="mt-3 px-4 py-2 bg-yellow-500 text-white rounded-lg"
+                className="mt-3 w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
               >
                 ✏️ Modifica
               </button>
@@ -82,20 +82,20 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
                 className="w-full p-2 border rounded mb-2"
                 rows={4}
               />
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {saving ? "⏳ Salvataggio..." : "Salva"}
+                  {saving ? "⏳ Salvataggio..." : "💾 Salva"}
                 </button>
                 <button
                   onClick={() => {
                     setNotes(job.notes ?? "");
                     setEditing(false);
                   }}
-                  className="px-4 py-2 bg-gray-300 rounded-lg"
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
                 >
                   Annulla
                 </button>

@@ -158,9 +158,9 @@ export default function Orders() {
             setEditingId(null);
             setShowForm(true);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          + Nuova Commessa
+          ➕ Nuova Commessa
         </button>
       </div>
 
@@ -168,15 +168,15 @@ export default function Orders() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
         <input
           type="text"
-          placeholder="Cerca per numero"
+          placeholder="🔍 Cerca per numero"
           value={searchCode}
           onChange={(e) => setSearchCode(e.target.value)}
-          className="p-2 border rounded w-full"
+          className="p-2 border rounded-lg w-full"
         />
         <select
           value={searchCustomer}
           onChange={(e) => setSearchCustomer(e.target.value)}
-          className="p-2 border rounded w-full"
+          className="p-2 border rounded-lg w-full"
         >
           <option value="">Tutti i clienti</option>
           {customers.map((c) => (
@@ -187,16 +187,16 @@ export default function Orders() {
         </select>
         <input
           type="text"
-          placeholder="Cerca per indirizzo"
+          placeholder="🔍 Cerca per indirizzo"
           value={searchAddress}
           onChange={(e) => setSearchAddress(e.target.value)}
-          className="p-2 border rounded w-full"
+          className="p-2 border rounded-lg w-full"
         />
       </div>
 
       {/* Tabella desktop */}
       <div className="hidden md:block">
-        <table className="w-full border-collapse bg-white shadow rounded-lg">
+        <table className="w-full border-collapse bg-white shadow rounded-lg overflow-hidden">
           <thead className="bg-gray-100 text-left">
             <tr>
               <th
@@ -233,22 +233,22 @@ export default function Orders() {
                   )}
                 </td>
                 <td className="p-2">{o.notes ?? "-"}</td>
-                <td className="p-2 space-x-2">
+                <td className="p-2 flex gap-2">
                   <Link
                     to={`/backoffice/orders/${o.id}`}
-                    className="px-2 py-1 bg-blue-600 text-white rounded"
+                    className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                   >
                     Apri
                   </Link>
                   <button
                     onClick={() => handleEdit(o)}
-                    className="px-2 py-1 bg-yellow-500 text-white rounded"
+                    className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(o.id)}
-                    className="px-2 py-1 bg-red-600 text-white rounded"
+                    className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️
                   </button>
@@ -276,22 +276,22 @@ export default function Orders() {
           >
             <div className="flex justify-between items-center mb-2">
               <h2 className="font-bold">{o.code}</h2>
-              <div className="space-x-2">
+              <div className="flex gap-2">
                 <Link
                   to={`/backoffice/orders/${o.id}`}
-                  className="px-2 py-1 bg-blue-600 text-white rounded text-sm"
+                  className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                 >
                   Apri
                 </Link>
                 <button
                   onClick={() => handleEdit(o)}
-                  className="px-2 py-1 bg-yellow-500 text-white rounded text-sm"
+                  className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                 >
                   ✏️
                 </button>
                 <button
                   onClick={() => handleDelete(o.id)}
-                  className="px-2 py-1 bg-red-600 text-white rounded text-sm"
+                  className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                 >
                   🗑️
                 </button>
@@ -333,10 +333,10 @@ export default function Orders() {
 
       {/* Modal nuova/modifica */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
             <h2 className="text-lg font-bold mb-4">
-              {editingId ? "Modifica Commessa" : "Nuova Commessa"}
+              {editingId ? "✏️ Modifica Commessa" : "➕ Nuova Commessa"}
             </h2>
 
             <input
@@ -345,7 +345,7 @@ export default function Orders() {
               placeholder="Numero commessa (es. 25-003) *"
               value={formData.code ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
             {/* Cliente (autocomplete) */}
@@ -363,10 +363,10 @@ export default function Orders() {
                   setSelectedCustomer("");
                   setCustomerSearch(e.target.value);
                 }}
-                className="w-full p-2 border rounded"
+                className="w-full p-2 border rounded-lg"
               />
               {customerSearch && !selectedCustomer && (
-                <ul className="absolute z-10 bg-white border rounded w-full shadow max-h-40 overflow-y-auto">
+                <ul className="absolute z-10 bg-white border rounded-lg w-full shadow max-h-40 overflow-y-auto">
                   {customers
                     .filter((c) =>
                       c.name
@@ -399,7 +399,7 @@ export default function Orders() {
               placeholder="Indirizzo lavoro"
               value={formData.location?.address ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
             <input
@@ -408,7 +408,7 @@ export default function Orders() {
               placeholder="Link Google Maps"
               value={formData.location?.mapsUrl ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
             <textarea
@@ -416,19 +416,19 @@ export default function Orders() {
               placeholder="Note commessa"
               value={formData.notes ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-end gap-2 mt-3">
               <button
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 bg-gray-300 rounded-lg"
+                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Salva
               </button>

@@ -32,7 +32,7 @@ export default function NewsaverplastLayout() {
     <div
       className={`
         flex h-screen w-full overflow-hidden
-        ${theme === "light" ? "bg-gray-100" : "bg-gray-900"}
+        ${theme === "light" ? "bg-orange-50" : "bg-gray-900"}
       `}
     >
       {/* Layout principale */}
@@ -47,7 +47,7 @@ export default function NewsaverplastLayout() {
             w-64 flex-col justify-between relative
             ${
               theme === "light"
-                ? "bg-white border-gray-200"
+                ? "bg-white border-orange-200"
                 : "bg-gray-800 border-gray-700"
             }
             backdrop-blur-2xl border-r
@@ -61,7 +61,7 @@ export default function NewsaverplastLayout() {
           </div>
 
           {/* User menu in basso */}
-          <div className="mt-4 border-t pt-4 relative">
+          <div className="mt-4 border-t border-orange-100 dark:border-gray-700 pt-4 relative">
             <UserMenu dropUp />
           </div>
         </motion.aside>
@@ -75,16 +75,16 @@ export default function NewsaverplastLayout() {
               animate={{ x: 0 }}
               exit={{ x: -250 }}
               className={`
-        w-64 flex flex-col justify-between relative
-        ${
-          theme === "light"
-            ? "bg-white border-gray-200"
-            : "bg-gray-800 border-gray-700"
-        }
-        backdrop-blur-2xl border-r
-        p-4 shadow-xl
-        text-gray-900 dark:text-gray-100
-      `}
+                w-64 flex flex-col justify-between relative
+                ${
+                  theme === "light"
+                    ? "bg-white border-orange-200"
+                    : "bg-gray-800 border-gray-700"
+                }
+                backdrop-blur-2xl border-r
+                p-4 shadow-xl
+                text-gray-900 dark:text-gray-100
+              `}
             >
               <div>
                 <button
@@ -98,7 +98,7 @@ export default function NewsaverplastLayout() {
                 </div>
               </div>
 
-              <div className="mt-4 border-t pt-4 relative">
+              <div className="mt-4 border-t border-orange-100 dark:border-gray-700 pt-4 relative">
                 <UserMenu />
               </div>
             </motion.aside>
@@ -119,7 +119,7 @@ export default function NewsaverplastLayout() {
               flex items-center 
               ${
                 theme === "light"
-                  ? "bg-white border-gray-200"
+                  ? "bg-white border-orange-200"
                   : "bg-gray-800 border-gray-700"
               }
               backdrop-blur-2xl border-b
@@ -127,7 +127,7 @@ export default function NewsaverplastLayout() {
             `}
           >
             <button
-              className="md:hidden p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="md:hidden p-2 rounded hover:bg-orange-100 dark:hover:bg-gray-700"
               onClick={() => setMobileOpen(true)}
             >
               <Menu size={20} />
@@ -138,12 +138,6 @@ export default function NewsaverplastLayout() {
                 alt="Logo NS Cantieri"
                 className="h-10 w-[100px] sm:h-12 sm:w-[100px] md:h-14 md:w-[100px] lg:h-16 lg:w-[150px] object-auto"
               />
-              <h1
-                className={`
-                  text-lg sm:text-xl font-semibold tracking-wide
-                  ${theme === "light" ? "text-gray-900" : "text-gray-100"}
-                `}
-              ></h1>
             </div>
           </header>
 
@@ -159,9 +153,9 @@ export default function NewsaverplastLayout() {
               <div className="mb-4">
                 <button
                   onClick={() => navigate(-1)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-200 
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-100 
                              dark:bg-gray-700 text-gray-800 dark:text-gray-200 
-                             hover:bg-gray-300 dark:hover:bg-gray-600"
+                             hover:bg-orange-200 dark:hover:bg-gray-600 transition"
                 >
                   <ArrowLeft
                     size={18}
@@ -174,10 +168,10 @@ export default function NewsaverplastLayout() {
 
             <div
               className={`
-                rounded-xl border shadow-lg p-4 sm:p-6
+                rounded-2xl border shadow-lg p-4 sm:p-6
                 ${
                   theme === "light"
-                    ? "bg-white border-gray-200"
+                    ? "bg-white border-orange-200"
                     : "bg-gray-800 border-gray-700"
                 }
               `}
@@ -192,7 +186,7 @@ export default function NewsaverplastLayout() {
               px-4 py-3 text-xs text-center border-t
               ${
                 theme === "light"
-                  ? "bg-white text-gray-500 border-gray-200"
+                  ? "bg-white text-gray-500 border-orange-200"
                   : "bg-gray-800 text-gray-400 border-gray-700"
               }
             `}

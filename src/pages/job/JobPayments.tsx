@@ -1,4 +1,3 @@
-// File: job/JobPayments.tsx
 import { useState } from "react";
 import { supabase } from "@/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -156,6 +155,7 @@ export default function JobPayments({
                 ))}
               </ul>
             )}
+
             {/* Riepilogo */}
             {payments.length > 0 && (
               <div className="border-t pt-2 text-sm space-y-1">
@@ -188,9 +188,11 @@ export default function JobPayments({
                 </div>
               </div>
             )}
+
+            {/* Bottone ottimizzato mobile */}
             <button
               onClick={() => setEditing(true)}
-              className="mt-2 px-3 py-1 bg-blue-600 text-white rounded"
+              className="mt-3 w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
             >
               ✏️ Modifica
             </button>
@@ -203,10 +205,10 @@ export default function JobPayments({
             {payments.map((p) => (
               <div
                 key={p.id}
-                className="flex items-start justify-between border p-2 rounded gap-2"
+                className="flex flex-col sm:flex-row items-start justify-between border p-2 rounded gap-2"
               >
-                {/* Importo a sinistra con input */}
-                <div className="flex flex-col items-start w-32">
+                {/* Importo */}
+                <div className="flex flex-col items-start w-full sm:w-32">
                   <input
                     type="number"
                     value={p.amount}
@@ -215,21 +217,20 @@ export default function JobPayments({
                         amount: parseFloat(e.target.value || "0"),
                       })
                     }
-                    className="border rounded p-1 w-full font-bold text-blue-700"
+                    className="border rounded p-2 w-full font-bold text-blue-700"
                   />
                 </div>
 
-                {/* Label + stato a destra */}
-                <div className="flex-1 flex flex-col gap-2">
+                {/* Label + stato */}
+                <div className="flex-1 flex flex-col gap-2 w-full">
                   <input
                     value={p.label}
                     onChange={(e) =>
                       updatePayment(p.id, { label: e.target.value })
                     }
-                    className="border rounded p-1"
+                    className="border rounded p-2 w-full"
                   />
 
-                  {/* Stato pagamento */}
                   <div className="flex flex-col gap-1 text-sm">
                     <label className="flex items-center gap-2">
                       <input
@@ -242,6 +243,7 @@ export default function JobPayments({
                             collectedAmount: e.target.checked ? p.amount : 0,
                           })
                         }
+                        className="w-4 h-4 rounded border-gray-300 accent-blue-600"
                       />
                       Incassato
                     </label>
@@ -259,6 +261,7 @@ export default function JobPayments({
                               : 0,
                           })
                         }
+                        className="w-4 h-4 rounded border-gray-300 accent-blue-600"
                       />
                       Parziale
                     </label>
@@ -273,7 +276,7 @@ export default function JobPayments({
                             collectedAmount: parseFloat(e.target.value || "0"),
                           })
                         }
-                        className="border rounded p-1 text-sm w-32"
+                        className="border rounded p-2 text-sm w-full sm:w-32"
                       />
                     )}
 
@@ -288,16 +291,16 @@ export default function JobPayments({
                 {/* Elimina */}
                 <button
                   onClick={() => removePayment(p.id)}
-                  className="text-red-600 text-sm"
+                  className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                 >
-                  🗑️
+                  🗑️ Elimina
                 </button>
               </div>
             ))}
 
             <button
               onClick={addPayment}
-              className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"
+              className="w-full px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
             >
               ➕ Aggiungi pagamento
             </button>
@@ -335,17 +338,17 @@ export default function JobPayments({
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => setEditing(false)}
-                className="px-3 py-1 bg-gray-300 rounded"
+                className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
               </button>
               <button
                 onClick={savePayments}
                 disabled={saving}
-                className="px-3 py-1 bg-blue-600 text-white rounded"
+                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {saving ? "⏳" : "💾 Salva"}
               </button>
@@ -364,7 +367,7 @@ export default function JobPayments({
             {payments.map((p) => (
               <div
                 key={p.id}
-                className="border rounded p-2 flex flex-col gap-2"
+                className="border rounded-lg p-3 flex flex-col gap-2 bg-white shadow-sm"
               >
                 <div className="flex justify-between">
                   <span className="font-medium">{p.label}</span>
@@ -389,6 +392,7 @@ export default function JobPayments({
                           collectedAmount: e.target.checked ? p.amount : 0,
                         })
                       }
+                      className="w-4 h-4 rounded border-gray-300 accent-blue-600"
                     />
                     Incassato
                   </label>
@@ -406,6 +410,7 @@ export default function JobPayments({
                             : 0,
                         })
                       }
+                      className="w-4 h-4 rounded border-gray-300 accent-blue-600"
                     />
                     Parziale
                   </label>
@@ -420,7 +425,7 @@ export default function JobPayments({
                           collectedAmount: parseFloat(e.target.value || "0"),
                         })
                       }
-                      className="border rounded p-1 text-sm w-32"
+                      className="border rounded p-2 text-sm w-full sm:w-32"
                     />
                   )}
 

@@ -13,7 +13,7 @@ import {
 import { useTheme } from "@/context/ThemeContext";
 
 export default function BackofficeNavbar() {
-  const { theme } = useTheme(); // 👈 prende il tema globale
+  const { theme } = useTheme();
   const [openDesktop, setOpenDesktop] = useState(false);
   const [openMobile, setOpenMobile] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -23,13 +23,13 @@ export default function BackofficeNavbar() {
 
   const inactive =
     theme === "light"
-      ? "text-gray-800 hover:bg-gray-100"
+      ? "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
       : "text-gray-300 hover:bg-white/10";
 
   const active =
     theme === "light"
-      ? "bg-blue-50 text-blue-600"
-      : "bg-white/20 text-white";
+      ? "bg-orange-100 text-orange-600"
+      : "bg-orange-500/20 text-orange-200";
 
   function linkClass({ isActive }: { isActive: boolean }) {
     return `${base} ${isActive ? active : inactive}`;
@@ -53,7 +53,6 @@ export default function BackofficeNavbar() {
 
       {/* --- Gestione --- */}
       <div className="relative">
-        {/* Bottone comune */}
         <button
           type="button"
           className={`${base} ${
@@ -61,8 +60,8 @@ export default function BackofficeNavbar() {
           } w-full md:w-auto`}
           onClick={() =>
             window.innerWidth >= 768
-              ? setOpenDesktop((v) => !v) // desktop
-              : setOpenMobile((v) => !v)  // mobile
+              ? setOpenDesktop((v) => !v)
+              : setOpenMobile((v) => !v)
           }
         >
           <Package size={16} /> Gestione
@@ -80,43 +79,45 @@ export default function BackofficeNavbar() {
             ref={ref}
             className={`
               absolute left-0 mt-2 w-56 rounded-md shadow-lg border z-50 hidden md:block
-              ${theme === "light"
-                ? "bg-white text-gray-800 border-gray-200"
-                : "bg-gray-900 text-gray-100 border-gray-700"}
+              ${
+                theme === "light"
+                  ? "bg-white text-gray-800 border-orange-200"
+                  : "bg-gray-900 text-gray-100 border-gray-700"
+              }
             `}
           >
             <div className="py-1">
               <NavLink
                 to="/backoffice/customers"
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
                 onClick={() => setOpenDesktop(false)}
               >
                 <Users size={16} /> Clienti
               </NavLink>
               <NavLink
                 to="/backoffice/orders"
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
                 onClick={() => setOpenDesktop(false)}
               >
                 <Package size={16} /> Ordini
               </NavLink>
               <NavLink
                 to="/backoffice/montatori"
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
                 onClick={() => setOpenDesktop(false)}
               >
                 <Wrench size={16} /> Montatori
               </NavLink>
               <NavLink
                 to="/backoffice/documenti"
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
                 onClick={() => setOpenDesktop(false)}
               >
                 <FileText size={16} /> Documenti
               </NavLink>
               <NavLink
                 to="/backoffice/report"
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
                 onClick={() => setOpenDesktop(false)}
               >
                 <BarChart3 size={16} /> Report

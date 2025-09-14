@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Edit, Trash2 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import type { Worker } from "../../types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -158,7 +157,7 @@ export default function MontatoriPage() {
     <main className="p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <h1 className="text-xl sm:text-2xl font-bold">Gestione Montatori</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">👷 Gestione Montatori</h1>
       </div>
 
       {/* Desktop: tabella */}
@@ -175,8 +174,8 @@ export default function MontatoriPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="p-4 text-center">
-                  Caricamento…
+                <td colSpan={4} className="p-4 text-center text-gray-600">
+                  ⏳ Caricamento…
                 </td>
               </tr>
             ) : montatori.length > 0 ? (
@@ -185,23 +184,21 @@ export default function MontatoriPage() {
                   <td className="p-3">{m.name}</td>
                   <td className="p-3">{m.email}</td>
                   <td className="p-3">{m.phone}</td>
-                  <td className="p-3 text-right flex gap-2 justify-end">
+                  <td className="p-3 flex gap-2 justify-end">
                     <button
                       onClick={() => openEditModal(m)}
-                      className="p-2 rounded hover:bg-blue-100 text-blue-600"
-                      title="Modifica"
+                      className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                     >
-                      <Edit className="w-5 h-5" />
+                      ✏️ Modifica
                     </button>
                     <button
                       onClick={() => {
                         setSelected(m);
                         setOpenConfirm(true);
                       }}
-                      className="p-2 rounded hover:bg-red-100 text-red-600"
-                      title="Elimina"
+                      className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      🗑️ Elimina
                     </button>
                   </td>
                 </tr>
@@ -220,7 +217,7 @@ export default function MontatoriPage() {
       {/* Mobile: cards */}
       <div className="md:hidden space-y-3">
         {loading ? (
-          <div className="text-center text-gray-500">Caricamento…</div>
+          <div className="text-center text-gray-500">⏳ Caricamento…</div>
         ) : montatori.length > 0 ? (
           montatori.map((m) => (
             <div
@@ -234,7 +231,7 @@ export default function MontatoriPage() {
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={() => openEditModal(m)}
-                  className="flex-1 px-3 py-2 rounded bg-blue-600 text-white text-sm"
+                  className="flex-1 text-center px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                 >
                   ✏️ Modifica
                 </button>
@@ -243,7 +240,7 @@ export default function MontatoriPage() {
                     setSelected(m);
                     setOpenConfirm(true);
                   }}
-                  className="flex-1 px-3 py-2 rounded bg-red-600 text-white text-sm"
+                  className="flex-1 text-center px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                 >
                   🗑️ Elimina
                 </button>
@@ -259,9 +256,9 @@ export default function MontatoriPage() {
 
       {/* Modal modifica */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-            <h2 className="text-lg font-bold mb-4">Modifica Montatore</h2>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 z-50">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+            <h2 className="text-lg font-bold mb-4">✏️ Modifica Montatore</h2>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -273,7 +270,7 @@ export default function MontatoriPage() {
                 <label className="block text-sm font-medium">Nome</label>
                 <input
                   type="text"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
@@ -285,7 +282,7 @@ export default function MontatoriPage() {
                 </label>
                 <input
                   type="email"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
@@ -295,7 +292,7 @@ export default function MontatoriPage() {
                 <label className="block text-sm font-medium">Telefono</label>
                 <input
                   type="tel"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded-lg px-3 py-2"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
@@ -307,13 +304,13 @@ export default function MontatoriPage() {
                     setModalOpen(false);
                     resetForm();
                   }}
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                  className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Salva
                 </button>

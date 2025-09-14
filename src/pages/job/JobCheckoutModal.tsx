@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { useState, useEffect } from "react";
 import type { Job, Payment } from "@/types";
 import { supabase } from "@/supabaseClient";
 import { documentAPI } from "@/api/documentAPI";
+import { jobAPI } from "@/api/jobs"; // 👈 import aggiunto
 import { toast } from "react-hot-toast";
 
 /* ===================== Helpers ===================== */
@@ -104,7 +104,7 @@ ${finalConclusion || "-"}
 
 /* ===================== Component ===================== */
 export default function JobCheckoutModal({
-  job,
+  job: initialJob, // 👈 lo rinominiamo perché lo ricarichiamo
   payments,
   ultimato,
   setUltimato,
@@ -130,6 +130,20 @@ export default function JobCheckoutModal({
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [completed, setCompleted] = useState(false);
+  const [job, setJob] = useState<Job>(initialJob);
+
+  // 🔹 quando apro il modal, ricarico il job completo con team
+  useEffect(() => {
+    (async () => {
+      try {
+        const fullJob = await jobAPI.getById(initialJob.id);
+        if (fullJob) setJob(fullJob);
+      } catch (err) {
+        console.error("Errore caricamento job completo:", err);
+        toast.error("Errore caricamento dati job");
+      }
+    })();
+  }, [initialJob.id]);
 
   // ✅ calcolo numero checkout successivo
   const checkoutIndex =
@@ -179,7 +193,6 @@ export default function JobCheckoutModal({
       toast.success("✅ Checkout effettuato con successo!");
     } catch (err: any) {
       console.error("Errore nel checkout:", err);
-      // NB: i toast specifici dei file falliti vengono già mostrati da uploadFineLavoro
       toast.error(err.message || "Errore durante il checkout");
     } finally {
       setCheckingOut(false);
@@ -277,7 +290,7 @@ export default function JobCheckoutModal({
             <div>
               <h3 className="font-medium mb-2">📎 Allegati fine lavoro</h3>
               <div className="flex gap-2 mb-3">
-                <label className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm cursor-pointer hover:bg-blue-700">
+                <label className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg text-center cursor-pointer hover:bg-blue-700">
                   📷 Scatta foto
                   <input
                     type="file"
@@ -287,7 +300,7 @@ export default function JobCheckoutModal({
                     className="hidden"
                   />
                 </label>
-                <label className="px-3 py-2 bg-gray-200 rounded-md text-sm cursor-pointer hover:bg-gray-300">
+                <label className="w-full sm:w-auto px-4 py-2 bg-gray-100 rounded-lg text-center cursor-pointer hover:bg-gray-200">
                   📎 Allega file
                   <input
                     type="file"
@@ -318,7 +331,7 @@ export default function JobCheckoutModal({
                         </div>
                         <button
                           onClick={() => removeFile(f.name)}
-                          className="ml-3 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                          className="w-full sm:w-auto px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs"
                         >
                           🗑️ Rimuovi
                         </button>
@@ -342,22 +355,24 @@ export default function JobCheckoutModal({
             {/* Esito */}
             <div>
               <h3 className="font-medium mb-2">Esito intervento</h3>
-              <label>
+              <label className="flex items-center gap-2 text-sm">
                 <input
                   type="radio"
                   value="si"
                   checked={ultimato === "si"}
                   onChange={() => setUltimato("si")}
-                />{" "}
+                  className="accent-blue-600"
+                />
                 Completato
               </label>
-              <label className="ml-4">
+              <label className="flex items-center gap-2 text-sm mt-1">
                 <input
                   type="radio"
                   value="no"
                   checked={ultimato === "no"}
                   onChange={() => setUltimato("no")}
-                />{" "}
+                  className="accent-blue-600"
+                />
                 Da completare
               </label>
             </div>
@@ -368,18 +383,27 @@ export default function JobCheckoutModal({
               <textarea
                 value={finalConclusion}
                 onChange={(e) => setFinalConclusion(e.target.value)}
-                className="w-full rounded-md border-gray-300 text-sm"
+                className="w-full rounded-md border-gray-300 text-sm p-2"
                 rows={3}
                 placeholder="Inserisci note di chiusura..."
               />
             </div>
 
             {/* Azioni */}
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button onClick={() => setCheckoutOpen(false)}>Annulla</Button>
-              <Button onClick={confirmCheckout} disabled={checkingOut}>
-                {checkingOut ? "Conferma..." : "Conferma"}
-              </Button>
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+              <button
+                onClick={() => setCheckoutOpen(false)}
+                className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={confirmCheckout}
+                disabled={checkingOut}
+                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {checkingOut ? "⏳ Conferma..." : "Conferma"}
+              </button>
             </div>
           </>
         ) : (
@@ -387,7 +411,12 @@ export default function JobCheckoutModal({
             <h2 className="text-xl font-semibold text-green-600">
               ✅ Checkout completato!
             </h2>
-            <Button onClick={() => setCheckoutOpen(false)}>Chiudi</Button>
+            <button
+              onClick={() => setCheckoutOpen(false)}
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Chiudi
+            </button>
           </div>
         )}
       </div>

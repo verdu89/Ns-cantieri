@@ -53,13 +53,13 @@ const Login = () => {
   };
 
   return (
-    <div className="bg-white shadow-xl rounded-xl p-8 flex flex-col gap-6">
-      <h1 className="text-2xl font-bold text-center text-gray-800">
-        Benvenuto 👋
-      </h1>
-      <p className="text-sm text-gray-500 text-center">
-        Accedi con le tue credenziali per continuare
-      </p>
+    <div className="flex flex-col gap-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900">Benvenuto 👋</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Accedi con le tue credenziali per continuare
+        </p>
+      </div>
 
       {error && <div className="text-red-500 text-sm text-center">{error}</div>}
 
@@ -69,7 +69,9 @@ const Login = () => {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="px-4 py-3 rounded-xl border border-gray-300 
+                     focus:outline-none focus:ring-4 focus:ring-orange-300 
+                     focus:border-orange-400 transition text-gray-900"
           required
         />
 
@@ -78,7 +80,9 @@ const Login = () => {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="px-4 py-3 rounded-xl border border-gray-300 
+                     focus:outline-none focus:ring-4 focus:ring-orange-300 
+                     focus:border-orange-400 transition text-gray-900"
           required
         />
 
@@ -87,6 +91,7 @@ const Login = () => {
             type="checkbox"
             checked={remember}
             onChange={(e) => setRemember(e.target.checked)}
+            className="rounded accent-orange-500"
           />
           Ricorda credenziali
         </label>
@@ -94,7 +99,10 @@ const Login = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="w-full py-3 rounded-xl font-semibold
+                     bg-orange-500 hover:bg-orange-600 text-white
+                     shadow-md shadow-orange-200
+                     disabled:opacity-50 transition-all"
         >
           {loading ? "Accesso in corso..." : "Accedi"}
         </button>

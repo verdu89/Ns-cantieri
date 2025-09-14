@@ -10,13 +10,13 @@ export default function WorkerNavbar() {
 
   const inactive =
     theme === "light"
-      ? "text-gray-800 hover:bg-gray-100"
+      ? "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
       : "text-gray-300 hover:bg-white/10";
 
   const active =
     theme === "light"
-      ? "bg-blue-50 text-blue-600"
-      : "bg-white/20 text-white";
+      ? "bg-orange-100 text-orange-600"
+      : "bg-orange-500/20 text-orange-200";
 
   function linkClass({ isActive }: { isActive: boolean }) {
     return `${base} ${isActive ? active : inactive}`;

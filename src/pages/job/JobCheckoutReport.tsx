@@ -51,11 +51,11 @@ export default function JobCheckoutReport({
                 {ev.notes}
               </pre>
 
-              {/* Allegato fine lavoro */}
+              {/* Allegati fine lavoro */}
               {checkoutDocs.length > 0 && (
                 <div>
                   <h3 className="font-medium mb-2 text-sm md:text-base">
-                    📎 Allegato fine lavoro
+                    📎 Allegati fine lavoro
                   </h3>
                   <ul className="text-sm space-y-2">
                     {checkoutDocs.map((d) => (
@@ -78,7 +78,7 @@ export default function JobCheckoutReport({
               )}
 
               {/* Bottone stampa */}
-              <div className="flex justify-end pt-2">
+              <div className="flex flex-col sm:flex-row justify-end pt-2">
                 <button
                   onClick={() => {
                     const printWindow = window.open(
@@ -106,7 +106,7 @@ export default function JobCheckoutReport({
                       printWindow.print();
                     }
                   }}
-                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   🖨️ Stampa
                 </button>

@@ -98,7 +98,7 @@ export default function Customers() {
     );
 
   if (loading) {
-    return <div className="p-6">Caricamento clienti...</div>;
+    return <div className="p-6 text-gray-600">⏳ Caricamento clienti...</div>;
   }
 
   return (
@@ -112,19 +112,19 @@ export default function Customers() {
             setEditingId(null);
             setShowForm(true);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          + Nuovo Cliente
+          ➕ Nuovo Cliente
         </button>
       </div>
 
       {/* Ricerca */}
       <input
         type="text"
-        placeholder="Cerca cliente..."
+        placeholder="🔍 Cerca cliente..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="mb-4 w-full p-2 border rounded"
+        className="mb-4 w-full p-2 border rounded-lg"
       />
 
       {/* Desktop: tabella */}
@@ -151,22 +151,22 @@ export default function Customers() {
                 <td className="p-2">{c.phone ?? "-"}</td>
                 <td className="p-2">{c.email ?? "-"}</td>
                 <td className="p-2">{c.notes ?? "-"}</td>
-                <td className="p-2 space-x-2">
+                <td className="p-2 flex gap-2">
                   <Link
                     to={`/backoffice/customers/${c.id}`}
-                    className="px-2 py-1 bg-blue-600 text-white rounded"
+                    className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                   >
                     Apri
                   </Link>
                   <button
                     onClick={() => handleEdit(c)}
-                    className="px-2 py-1 bg-yellow-500 text-white rounded"
+                    className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => handleDelete(c.id)}
-                    className="px-2 py-1 bg-red-600 text-white rounded"
+                    className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️
                   </button>
@@ -199,19 +199,19 @@ export default function Customers() {
             <div className="flex gap-2 mt-3">
               <Link
                 to={`/backoffice/customers/${c.id}`}
-                className="flex-1 text-center px-2 py-1 bg-blue-600 text-white rounded"
+                className="flex-1 text-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
               >
                 Apri
               </Link>
               <button
                 onClick={() => handleEdit(c)}
-                className="flex-1 text-center px-2 py-1 bg-yellow-500 text-white rounded"
+                className="flex-1 text-center px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
               >
                 ✏️
               </button>
               <button
                 onClick={() => handleDelete(c.id)}
-                className="flex-1 text-center px-2 py-1 bg-red-600 text-white rounded"
+                className="flex-1 text-center px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
               >
                 🗑️
               </button>
@@ -228,10 +228,10 @@ export default function Customers() {
 
       {/* Modal nuovo/modifica cliente */}
       {showForm && (
-        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center p-3">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3 z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
             <h2 className="text-lg font-bold mb-4">
-              {editingId ? "Modifica Cliente" : "Nuovo Cliente"}
+              {editingId ? "✏️ Modifica Cliente" : "➕ Nuovo Cliente"}
             </h2>
 
             <input
@@ -240,7 +240,7 @@ export default function Customers() {
               placeholder="Nome / Ragione sociale *"
               value={formData.name ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
             <input
               type="text"
@@ -248,7 +248,7 @@ export default function Customers() {
               placeholder="Telefono"
               value={formData.phone ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
             <input
               type="email"
@@ -256,14 +256,14 @@ export default function Customers() {
               placeholder="Email"
               value={formData.email ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
             <textarea
               name="notes"
               placeholder="Note interne"
               value={formData.notes ?? ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded mb-2"
+              className="w-full p-2 border rounded-lg mb-2"
             />
 
             <div className="flex justify-end gap-2 mt-3">
@@ -273,13 +273,13 @@ export default function Customers() {
                   setFormData({});
                   setEditingId(null);
                 }}
-                className="px-4 py-2 bg-gray-300 rounded-lg"
+                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Salva
               </button>
