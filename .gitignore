@@ -25,3 +25,11 @@ dist-ssr
 *.sw?
 my-release-key.jks
 capacitor.config.ts
+
+
+
+# aggiunte mie
+
+
+android/
+capacitor.config.tsmy-release-key.jks
