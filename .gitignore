@@ -31,5 +31,5 @@ capacitor.config.ts
 # aggiunte mie
 
 
-android/
-capacitor.config.tsmy-release-key.jks
+
+smy-release-key.jks
