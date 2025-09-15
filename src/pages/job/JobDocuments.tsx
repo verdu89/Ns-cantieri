@@ -105,7 +105,7 @@ export default function JobDocuments({
 
   return (
     <>
-      <Card>
+      <Card className="scroll-on-open">
         <CardHeader>
           <CardTitle>📂 Documenti</CardTitle>
         </CardHeader>

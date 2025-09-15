@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Job, Worker } from "@/types";
 import { supabase } from "@/supabaseClient";
@@ -32,13 +32,21 @@ export default function JobStatusEditor({
   const [saving, setSaving] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<Job["status"]>(status);
 
+  const formRef = useRef<HTMLDivElement>(null);
+
+  // 🔹 scroll automatico quando appare un form
+  useEffect(() => {
+    if ((showAssignForm || showOverride) && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [showAssignForm, showOverride]);
+
   const cfg = STATUS_CONFIG[status] ?? {
     badge: "bg-gray-200 text-gray-700",
     label: "Stato sconosciuto",
     icon: "❓",
   };
 
-  // 🔹 prendi solo i montatori già assegnati al job
   const teamWorkers = useMemo(
     () => workers.filter((w) => assignedWorkers.includes(w.id)),
     [workers, assignedWorkers]
@@ -145,7 +153,7 @@ export default function JobStatusEditor({
 
         {/* Form assegnazione */}
         {showAssignForm && (
-          <div className="space-y-4 border rounded-md p-4">
+          <div ref={formRef} className="space-y-4 border rounded-md p-4">
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700">
                 Data programmata
@@ -203,7 +211,7 @@ export default function JobStatusEditor({
 
         {/* Override stato */}
         {showOverride && (
-          <div className="space-y-2 border rounded-md p-4">
+          <div ref={formRef} className="space-y-2 border rounded-md p-4">
             <label className="block text-sm font-medium text-gray-700">
               Seleziona nuovo stato
             </label>

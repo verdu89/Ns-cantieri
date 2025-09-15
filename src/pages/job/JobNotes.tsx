@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Job } from "@/types";
 import { jobAPI } from "@/api/jobs";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -15,6 +15,15 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
   const [notes, setNotes] = useState(job.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+
+  const editRef = useRef<HTMLDivElement>(null);
+
+  // 👇 quando attivo la modalità editing scrollo alla sezione
+  useEffect(() => {
+    if (editing && editRef.current) {
+      editRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [editing]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -36,7 +45,7 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
   };
 
   return (
-    <Card>
+    <Card className="scroll-on-open">
       <CardHeader>
         <CardTitle>📝 Note</CardTitle>
       </CardHeader>
@@ -52,7 +61,7 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
         </div>
 
         {/* NOTE INTERVENTO */}
-        <div>
+        <div ref={editRef}>
           <h3 className="text-md font-semibold mb-2 pt-2">
             🛠️ Note intervento corrente
           </h3>

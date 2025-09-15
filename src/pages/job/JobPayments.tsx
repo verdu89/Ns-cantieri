@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Job, Payment } from "@/types";
@@ -22,6 +22,14 @@ export default function JobPayments({
 }: JobPaymentsProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const editRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (editing && editRef.current) {
+      editRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [editing]);
 
   const updatePayment = (id: string, changes: Partial<Payment>) => {
     setPayments(payments.map((p) => (p.id === id ? { ...p, ...changes } : p)));
@@ -126,7 +134,7 @@ export default function JobPayments({
   );
 
   return (
-    <Card>
+    <Card className="scroll-on-open">
       <CardHeader>
         <CardTitle>💰 Pagamenti</CardTitle>
       </CardHeader>
@@ -202,7 +210,7 @@ export default function JobPayments({
 
         {/* BACKOFFICE EDITING */}
         {isBackoffice && editing && (
-          <div className="space-y-3">
+          <div ref={editRef} className="space-y-3">
             {payments.map((p) => (
               <div
                 key={p.id}
