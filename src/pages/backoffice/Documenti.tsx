@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/Button";
 // File: pages/backoffice/DocumentiPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Upload, Trash2, Download, Search } from "lucide-react";
 import { jobOrderAPI } from "../../api/jobOrders";
 import { documentAPI } from "../../api/documentAPI";
-import { jobAPI } from "../../api/jobs"; // 👈 import statico
+import { jobAPI } from "../../api/jobs";
 import type { JobOrder, Documento } from "../../types";
 import { formatDocumento } from "../../utils/documenti";
 import { supabase } from "../../supabaseClient";
@@ -21,6 +21,9 @@ export default function DocumentiPage() {
 
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadCommessa, setUploadCommessa] = useState<string>("");
+
+  // Ref per resettare input file
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 🔎 Filtri
   const [search, setSearch] = useState("");
@@ -50,7 +53,7 @@ export default function DocumentiPage() {
 
       const docsJob = await Promise.all(
         c.map(async (commessa) => {
-          const jobs = await jobAPI.listByOrder(commessa.id); // 👈 static import
+          const jobs = await jobAPI.listByOrder(commessa.id);
           const allDocs: DocumentoExtended[] = [];
           for (const job of jobs) {
             const d = await documentAPI.listByJob(job.id);
@@ -66,7 +69,14 @@ export default function DocumentiPage() {
         })
       );
 
-      setDocumenti([...docsOrder.flat(), ...docsJob.flat()]);
+      // 🔹 Rimuovo duplicati
+      setDocumenti(
+        [...docsOrder.flat(), ...docsJob.flat()].filter(
+          (doc, index, self) =>
+            index ===
+            self.findIndex((d) => d.id === doc.id && d.source === doc.source)
+        )
+      );
     }
 
     loadData();
@@ -107,17 +117,31 @@ export default function DocumentiPage() {
       });
 
       const docs = await documentAPI.listByOrder(commessa.id);
-      setDocumenti((prev) => [
-        ...prev,
-        ...docs.map((doc) => ({
+
+      // 🔹 Aggiungo e deduplico
+      setDocumenti((prev) => {
+        const nuoviDocs = docs.map((doc) => ({
           ...doc,
           source: "commessa" as const,
           commessaCode: commessa.code,
-        })),
-      ]);
+        }));
 
-      setUploadFile(null);
+        const unione = [...prev, ...nuoviDocs];
+
+        return unione.filter(
+          (doc, index, self) =>
+            index ===
+            self.findIndex((d) => d.id === doc.id && d.source === doc.source)
+        );
+      });
+
+      // 🔹 Reset commessa e file
       setUploadCommessa("");
+      setUploadFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
       toast.success("Documento caricato con successo ✅");
     } catch (err) {
       console.error("Errore durante upload:", err);
@@ -224,10 +248,12 @@ export default function DocumentiPage() {
           </div>
 
           <input
+            key={documenti.length} // 👈 forza reset dell’input dopo upload
             type="file"
             onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
             className="border px-3 py-2 rounded-lg w-full"
           />
+
           <Button
             onClick={handleUpload}
             className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 w-full md:w-auto"
@@ -256,7 +282,10 @@ export default function DocumentiPage() {
               {documentiFiltrati.map((doc) => {
                 const d = formatDocumento(doc);
                 return (
-                  <tr key={d.id} className="border-b hover:bg-gray-50">
+                  <tr
+                    key={`desktop-${doc.source}-${d.id}`}
+                    className="border-b hover:bg-gray-50"
+                  >
                     <td className="p-3 flex items-center gap-2">
                       {d.icon} {d.fileName}
                     </td>
@@ -302,7 +331,10 @@ export default function DocumentiPage() {
           {documentiFiltrati.map((doc) => {
             const d = formatDocumento(doc);
             return (
-              <div key={d.id} className="p-4 flex flex-col space-y-2">
+              <div
+                key={`mobile-${doc.source}-${d.id}`}
+                className="p-4 flex flex-col space-y-2"
+              >
                 <div className="flex items-center gap-2">
                   {d.icon} <span className="font-medium">{d.fileName}</span>
                 </div>

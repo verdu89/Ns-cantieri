@@ -32,7 +32,7 @@ export default function Settings() {
       if (isAdmin) {
         const { data, error } = await supabase
           .from("workers")
-          .select("id, name, role, phone, user_id");
+          .select("id, name, role, phone, user_id"); // Rimosso created_at
 
         if (error) {
           console.error("Errore caricamento workers:", error);
@@ -45,8 +45,6 @@ export default function Settings() {
           userId: w.user_id,
           name: w.name,
           phone: w.phone,
-          email: w.email,
-          createdAt: w.created_at,
           role: w.role,
         }));
 
@@ -54,7 +52,7 @@ export default function Settings() {
       } else {
         const { data, error } = await supabase
           .from("workers")
-          .select("id, name, role, phone, email, created_at, user_id")
+          .select("id, name, role, phone, user_id") // Rimosso created_at
           .eq("user_id", user.id)
           .single();
 
@@ -71,8 +69,6 @@ export default function Settings() {
               userId: data.user_id,
               name: data.name,
               phone: data.phone,
-              email: data.email,
-              createdAt: data.created_at,
               role: data.role,
             },
           ]);

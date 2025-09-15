@@ -44,7 +44,7 @@ export default function JobDetail() {
     return {
       id: (user as any)?.id || "user-unknown",
       name: String(display),
-      role: (user as any)?.role || "montatore",
+      role: (user as any)?.role || "montatore", // Ruolo di default "montatore"
     };
   }, [user]);
 
@@ -160,10 +160,11 @@ export default function JobDetail() {
 
   /* ========== Logica bottone checkout ========== */
   const canDoCheckout =
-    (currentUser.role === "montatore" &&
-      (job.status === "in_corso" || job.status === "in_ritardo")) ||
-    (isBackoffice &&
-      ["assegnato", "in_corso", "in_ritardo"].includes(job.status));
+    (currentUser.role === "worker" &&
+      (job.status === "in_corso" || job.status === "in_ritardo")) || // Worker può fare checkout se in corso o in ritardo
+    isBackoffice ||
+    (currentUser.role === "admin" &&
+      ["assegnato", "in_corso", "in_ritardo"].includes(job.status)); // Backoffice e Admin possono fare checkout anche se in stato "assegnato", "in_corso" o "in_ritardo"
 
   /* ========== Render ========== */
   return (

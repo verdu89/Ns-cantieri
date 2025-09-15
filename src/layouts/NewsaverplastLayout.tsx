@@ -136,7 +136,7 @@ export default function NewsaverplastLayout() {
               <img
                 src="/img/logo.png"
                 alt="Logo NS Cantieri"
-                className="h-10 w-[100px] sm:h-12 sm:w-[100px] md:h-14 md:w-[100px] lg:h-16 lg:w-[150px] object-auto"
+                className="h-16 w-[150px] sm:h-20 sm:w-[200px] md:h-24 md:w-[250px] lg:h-28 lg:w-[300px] object-auto"
               />
             </div>
           </header>

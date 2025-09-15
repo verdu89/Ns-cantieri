@@ -306,7 +306,6 @@ export default function JobCheckoutModal({
                   <input
                     type="file"
                     accept="image/*,application/pdf"
-                    multiple
                     onChange={handleFileUpload}
                     className="hidden"
                   />

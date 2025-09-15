@@ -362,12 +362,14 @@ export default function OrderDetail() {
 
         <label className="w-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 text-gray-500 cursor-pointer hover:border-blue-500 hover:text-blue-500 transition">
           <input
+            key={documenti.length}
             type="file"
             multiple
             onChange={handleUploadFiles}
             className="hidden"
             disabled={loadingDocs}
           />
+
           <span className="text-sm">
             {loadingDocs
               ? "⏳ Caricamento in corso..."

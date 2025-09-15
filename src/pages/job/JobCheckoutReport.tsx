@@ -82,13 +82,19 @@ export default function JobCheckoutReport({
               <div className="flex flex-col sm:flex-row justify-end pt-2">
                 <Button
                   onClick={() => {
-                    const printWindow = window.open(
-                      "",
-                      "_blank",
-                      "width=800,height=600"
-                    );
-                    if (printWindow) {
-                      printWindow.document.write(`
+                    // Creiamo un iframe invisibile per gestire la stampa senza bloccare la pagina
+                    const iframe = document.createElement("iframe");
+                    iframe.style.position = "absolute";
+                    iframe.style.width = "0";
+                    iframe.style.height = "0";
+                    iframe.style.border = "none";
+                    document.body.appendChild(iframe);
+
+                    const iframeDoc = iframe.contentWindow?.document;
+                    if (iframeDoc) {
+                      // Prepara il contenuto per la stampa
+                      iframeDoc.open();
+                      iframeDoc.write(`
                         <html>
                           <head>
                             <title>Stampa Checkout</title>
@@ -103,8 +109,9 @@ export default function JobCheckoutReport({
                           </body>
                         </html>
                       `);
-                      printWindow.document.close();
-                      printWindow.print();
+                      iframeDoc.close();
+                      iframe.contentWindow?.print();
+                      document.body.removeChild(iframe); // Rimuoviamo l'iframe dopo la stampa
                     }
                   }}
                   className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

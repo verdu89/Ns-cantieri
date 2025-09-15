@@ -54,7 +54,7 @@ const AuthLayoutFullBg = () => {
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white drop-shadow-md tracking-wide">
-              Benvenuto in Saverplast
+              Benvenuto in NS cantieri
             </h1>
             <p className="mt-2 text-gray-300 text-sm sm:text-base lg:text-lg">
               Gestione Montaggi & Back Office

@@ -209,12 +209,14 @@ export default function JobDocuments({
               <div className="mt-6">
                 <label className="w-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 text-gray-500 cursor-pointer hover:border-blue-500 hover:text-blue-500 transition text-center text-sm">
                   <input
+                    key={docs.length} // forza il reset dell’input
                     type="file"
                     multiple
                     onChange={handleUploadDocs}
                     disabled={uploading}
                     className="hidden"
                   />
+
                   {uploading
                     ? "⏳ Caricamento in corso..."
                     : "📤 Trascina file o clicca per caricare"}
