@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { jobOrderAPI } from "../../api/jobOrders";
@@ -150,7 +151,7 @@ export default function Orders() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
         <h1 className="text-lg sm:text-xl font-bold">Commesse</h1>
-        <button
+        <Button
           onClick={() => {
             setFormData({});
             setSelectedCustomer("");
@@ -161,7 +162,7 @@ export default function Orders() {
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           ➕ Nuova Commessa
-        </button>
+        </Button>
       </div>
 
       {/* Filtri */}
@@ -240,18 +241,18 @@ export default function Orders() {
                   >
                     Apri
                   </Link>
-                  <button
+                  <Button
                     onClick={() => handleEdit(o)}
                     className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                   >
                     ✏️
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handleDelete(o.id)}
                     className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -283,18 +284,18 @@ export default function Orders() {
                 >
                   Apri
                 </Link>
-                <button
+                <Button
                   onClick={() => handleEdit(o)}
                   className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                 >
                   ✏️
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => handleDelete(o.id)}
                   className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                 >
                   🗑️
-                </button>
+                </Button>
               </div>
             </div>
             <div className="text-sm text-gray-700">
@@ -420,18 +421,18 @@ export default function Orders() {
             />
 
             <div className="flex justify-end gap-2 mt-3">
-              <button
+              <Button
                 onClick={() => setShowForm(false)}
                 className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleSave}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Salva
-              </button>
+              </Button>
             </div>
           </div>
         </div>

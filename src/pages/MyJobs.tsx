@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 // src/pages/MyJobs.tsx
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
@@ -185,7 +186,7 @@ export default function MyJobs() {
 
           {/* Filtri rapidi data */}
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={() => setDateFilter("all")}
               className={`px-3 py-2 rounded-lg text-sm ${
                 dateFilter === "all"
@@ -194,8 +195,8 @@ export default function MyJobs() {
               }`}
             >
               Tutti
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setDateFilter("today")}
               className={`px-3 py-2 rounded-lg text-sm ${
                 dateFilter === "today"
@@ -204,8 +205,8 @@ export default function MyJobs() {
               }`}
             >
               Oggi
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setDateFilter("week")}
               className={`px-3 py-2 rounded-lg text-sm ${
                 dateFilter === "week"
@@ -214,11 +215,11 @@ export default function MyJobs() {
               }`}
             >
               Settimana
-            </button>
+            </Button>
           </div>
 
           {/* Sort per data */}
-          <button
+          <Button
             onClick={() =>
               setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
             }
@@ -226,7 +227,7 @@ export default function MyJobs() {
           >
             <ArrowDownUp size={16} />
             {sortOrder === "asc" ? "Data ↑" : "Data ↓"}
-          </button>
+          </Button>
         </div>
       </div>
 

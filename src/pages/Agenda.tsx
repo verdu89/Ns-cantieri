@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -193,30 +194,30 @@ export default function Agenda() {
           <p className="text-sm text-gray-600">{formatWeekRange(weekStart)}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
+          <Button
             className="p-2 rounded-lg border bg-white hover:bg-gray-50"
             onClick={() => setWeekStart((d) => addDays(d, -7))}
           >
             <ChevronLeft size={16} />
-          </button>
-          <button
+          </Button>
+          <Button
             className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-sm"
             onClick={() => setWeekStart(getMonday(new Date()))}
           >
             Oggi
-          </button>
-          <button
+          </Button>
+          <Button
             className="p-2 rounded-lg border bg-white hover:bg-gray-50"
             onClick={() => setWeekStart((d) => addDays(d, 7))}
           >
             <ChevronRight size={16} />
-          </button>
-          <button
+          </Button>
+          <Button
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-sm"
             onClick={load}
           >
             <RefreshCw size={16} /> Aggiorna
-          </button>
+          </Button>
         </div>
       </div>
 

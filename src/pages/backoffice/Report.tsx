@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useEffect, useState } from "react";
 import { jobOrderAPI } from "../../api/jobOrders";
 import { jobAPI } from "../../api/jobs";
@@ -121,22 +122,22 @@ export default function ReportPage() {
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
         <h1 className="text-2xl font-bold">Reportistica Settimanale</h1>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={() => setWeekOffset(weekOffset - 1)}
             className="px-3 py-1 bg-gray-200 rounded"
           >
             ◀️
-          </button>
+          </Button>
           <div className="font-medium">
             {weekStart.toLocaleDateString("it-IT")} –{" "}
             {weekEnd.toLocaleDateString("it-IT")}
           </div>
-          <button
+          <Button
             onClick={() => setWeekOffset(weekOffset + 1)}
             className="px-3 py-1 bg-gray-200 rounded"
           >
             ▶️
-          </button>
+          </Button>
         </div>
       </div>
 

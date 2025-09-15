@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabaseClient";
@@ -211,12 +212,12 @@ export default function Settings() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="border rounded-lg px-3 py-2 w-full"
           />
-          <button
+          <Button
             onClick={handlePasswordChange}
             className="w-full sm:w-auto text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Aggiorna password
-          </button>
+          </Button>
         </CardContent>
       </Card>
 
@@ -247,12 +248,12 @@ export default function Settings() {
               className="border rounded-lg px-3 py-2 w-full"
             />
             <div className="flex flex-col sm:flex-row gap-2">
-              <button
+              <Button
                 onClick={handleAdminPasswordReset}
                 className="w-full sm:w-auto text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Reset password
-              </button>
+              </Button>
             </div>
           </CardContent>
         </Card>

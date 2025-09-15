@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState } from "react";
 import { supabase } from "@/supabaseClient";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -190,12 +191,12 @@ export default function JobPayments({
             )}
 
             {/* Bottone ottimizzato mobile */}
-            <button
+            <Button
               onClick={() => setEditing(true)}
               className="mt-3 w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
             >
               ✏️ Modifica
-            </button>
+            </Button>
           </div>
         )}
 
@@ -289,21 +290,21 @@ export default function JobPayments({
                 </div>
 
                 {/* Elimina */}
-                <button
+                <Button
                   onClick={() => removePayment(p.id)}
                   className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                 >
                   🗑️ Elimina
-                </button>
+                </Button>
               </div>
             ))}
 
-            <button
+            <Button
               onClick={addPayment}
               className="w-full px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
             >
               ➕ Aggiungi pagamento
-            </button>
+            </Button>
 
             {/* Riepilogo */}
             {payments.length > 0 && (
@@ -339,19 +340,19 @@ export default function JobPayments({
             )}
 
             <div className="flex flex-col sm:flex-row gap-2">
-              <button
+              <Button
                 onClick={() => setEditing(false)}
                 className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={savePayments}
                 disabled={saving}
                 className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {saving ? "⏳" : "💾 Salva"}
-              </button>
+              </Button>
             </div>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { customerAPI } from "../../api/customers";
@@ -171,7 +172,7 @@ export default function CustomerDetail() {
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex flex-col sm:flex-row justify-between gap-3 sm:items-center mb-4">
           <h2 className="text-xl font-bold">📂 Commesse</h2>
-          <button
+          <Button
             onClick={() => {
               setFormData({});
               setEditingId(null);
@@ -180,7 +181,7 @@ export default function CustomerDetail() {
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             ➕ Nuova Commessa
-          </button>
+          </Button>
         </div>
 
         {/* Filtri */}
@@ -248,18 +249,18 @@ export default function CustomerDetail() {
                       >
                         Apri
                       </Link>
-                      <button
+                      <Button
                         onClick={() => handleEdit(o)}
                         className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                       >
                         ✏️
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleDelete(o.id)}
                         className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                       >
                         🗑️
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -306,18 +307,18 @@ export default function CustomerDetail() {
                   >
                     Apri
                   </Link>
-                  <button
+                  <Button
                     onClick={() => handleEdit(o)}
                     className="flex-1 text-center px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                   >
                     ✏️
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handleDelete(o.id)}
                     className="flex-1 text-center px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))
@@ -366,7 +367,7 @@ export default function CustomerDetail() {
             />
 
             <div className="flex justify-end gap-2 mt-3">
-              <button
+              <Button
                 onClick={() => {
                   setShowForm(false);
                   setFormData({});
@@ -375,13 +376,13 @@ export default function CustomerDetail() {
                 className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleSave}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Salva
-              </button>
+              </Button>
             </div>
           </div>
         </div>

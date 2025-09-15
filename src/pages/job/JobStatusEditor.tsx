@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Job, Worker } from "@/types";
@@ -122,7 +123,7 @@ export default function JobStatusEditor({
 
         {/* Azioni */}
         <div className="flex flex-col sm:flex-row gap-2">
-          <button
+          <Button
             onClick={() => {
               setShowAssignForm(!showAssignForm);
               setShowOverride(false);
@@ -130,8 +131,8 @@ export default function JobStatusEditor({
             className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             📌 Assegna lavoro
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => {
               setShowOverride(!showOverride);
               setShowAssignForm(false);
@@ -139,7 +140,7 @@ export default function JobStatusEditor({
             className="w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
           >
             📝 Modifica stato
-          </button>
+          </Button>
         </div>
 
         {/* Form assegnazione */}
@@ -183,19 +184,19 @@ export default function JobStatusEditor({
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
-              <button
+              <Button
                 onClick={() => setShowAssignForm(false)}
                 className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleAssign}
                 disabled={saving}
                 className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 {saving ? "⏳ Salvataggio..." : "Conferma assegnazione"}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -222,19 +223,19 @@ export default function JobStatusEditor({
               )}
             </select>
             <div className="flex flex-col sm:flex-row gap-2 mt-2">
-              <button
+              <Button
                 onClick={() => setShowOverride(false)}
                 className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleSaveOverride}
                 disabled={saving}
                 className="w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50"
               >
                 {saving ? "⏳ Salvataggio..." : "Salva stato"}
-              </button>
+              </Button>
             </div>
           </div>
         )}

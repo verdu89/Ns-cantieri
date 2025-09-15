@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { jobAPI } from "@/api/jobs";
@@ -215,12 +216,12 @@ export default function JobDetail() {
       {/* OPERATIVITÀ / CHECKOUT */}
       {canDoCheckout && (
         <div className="flex justify-center py-6">
-          <button
+          <Button
             onClick={() => setCheckoutOpen(true)}
             className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             🚀 Apri Checkout
-          </button>
+          </Button>
         </div>
       )}
 

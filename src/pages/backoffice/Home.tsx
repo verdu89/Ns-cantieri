@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 // src/pages/backoffice/JobsList.tsx
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -154,7 +155,7 @@ export default function JobsList() {
         />
 
         {/* Sort per data */}
-        <button
+        <Button
           onClick={() =>
             setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
           }
@@ -162,7 +163,7 @@ export default function JobsList() {
         >
           <ArrowDownUp size={16} />
           {sortOrder === "asc" ? "Data ↑" : "Data ↓"}
-        </button>
+        </Button>
 
         {/* Filtro stato */}
         <div className="relative">
@@ -200,12 +201,12 @@ export default function JobsList() {
         </div>
 
         <div className="flex md:justify-end">
-          <button
+          <Button
             className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border bg-white hover:bg-gray-50"
             onClick={loadAll}
           >
             <RefreshCw size={16} /> Aggiorna
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -227,7 +228,7 @@ export default function JobsList() {
             const customer = getCustomer(job);
             const cfg = STATUS_CONFIG[job.effectiveStatus];
             return (
-              <button
+              <Button
                 key={job.id}
                 onClick={() => navigate(`${JOB_BASE_PATH}/${job.id}`)}
                 className="bg-white border rounded-2xl p-3 w-full text-left active:scale-[0.99] transition"
@@ -264,7 +265,7 @@ export default function JobsList() {
                     <span className="truncate">{order.location.address}</span>
                   </div>
                 )}
-              </button>
+              </Button>
             );
           })}
       </div>

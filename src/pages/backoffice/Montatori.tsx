@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState, useEffect } from "react";
 import { supabase } from "../../supabaseClient";
 import type { Worker } from "../../types";
@@ -185,13 +186,13 @@ export default function MontatoriPage() {
                   <td className="p-3">{m.email}</td>
                   <td className="p-3">{m.phone}</td>
                   <td className="p-3 flex gap-2 justify-end">
-                    <button
+                    <Button
                       onClick={() => openEditModal(m)}
                       className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                     >
                       ✏️ Modifica
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => {
                         setSelected(m);
                         setOpenConfirm(true);
@@ -199,7 +200,7 @@ export default function MontatoriPage() {
                       className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                     >
                       🗑️ Elimina
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))
@@ -229,13 +230,13 @@ export default function MontatoriPage() {
               <div className="text-sm text-gray-600">📞 {m.phone ?? "-"}</div>
 
               <div className="flex gap-2 mt-3">
-                <button
+                <Button
                   onClick={() => openEditModal(m)}
                   className="flex-1 text-center px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                 >
                   ✏️ Modifica
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
                     setSelected(m);
                     setOpenConfirm(true);
@@ -243,7 +244,7 @@ export default function MontatoriPage() {
                   className="flex-1 text-center px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                 >
                   🗑️ Elimina
-                </button>
+                </Button>
               </div>
             </div>
           ))
@@ -298,7 +299,7 @@ export default function MontatoriPage() {
                 />
               </div>
               <div className="flex justify-end gap-2 pt-4">
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     setModalOpen(false);
@@ -307,13 +308,13 @@ export default function MontatoriPage() {
                   className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
                 >
                   Annulla
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Salva
-                </button>
+                </Button>
               </div>
             </form>
           </div>

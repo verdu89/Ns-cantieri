@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Documento } from "@/types";
@@ -184,7 +185,7 @@ export default function JobDocuments({
                       </div>
 
                       {canEdit && (
-                        <button
+                        <Button
                           onClick={() => setConfirmDelete(d)}
                           disabled={deletingId === d.id}
                           className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
@@ -192,7 +193,7 @@ export default function JobDocuments({
                           {deletingId === d.id
                             ? "⏳ Eliminazione..."
                             : "🗑️ Elimina"}
-                        </button>
+                        </Button>
                       )}
                     </li>
                   );
@@ -234,18 +235,18 @@ export default function JobDocuments({
               <span className="font-medium">{confirmDelete.fileName}</span>?
             </p>
             <div className="flex flex-col sm:flex-row justify-end gap-2">
-              <button
+              <Button
                 onClick={() => setConfirmDelete(null)}
                 className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleDeleteDoc(confirmDelete)}
                 className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
                 Elimina
-              </button>
+              </Button>
             </div>
           </div>
         </div>

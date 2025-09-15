@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { jobOrderAPI } from "../../api/jobOrders";
@@ -345,12 +346,12 @@ export default function OrderDetail() {
           className="w-full p-2 border rounded-lg mb-2"
           rows={4}
         />
-        <button
+        <Button
           onClick={handleSaveNotes}
           className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           Salva Note
-        </button>
+        </Button>
       </div>
 
       {/* Allegati */}
@@ -407,12 +408,12 @@ export default function OrderDetail() {
                       </div>
                     </div>
                   </div>
-                  <button
+                  <Button
                     onClick={() => handleDeleteFile(d.id, d.fileUrl)}
                     className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️ Elimina
-                  </button>
+                  </Button>
                 </li>
               );
             })}
@@ -484,7 +485,7 @@ export default function OrderDetail() {
           <h2 className="text-lg md:text-xl font-bold">
             👷 Interventi ({sortedJobs.length})
           </h2>
-          <button
+          <Button
             onClick={() => {
               setFormData({});
               setEditingId(null);
@@ -493,7 +494,7 @@ export default function OrderDetail() {
             className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             ➕ Nuovo Intervento
-          </button>
+          </Button>
         </div>
 
         {/* Mobile */}
@@ -544,18 +545,18 @@ export default function OrderDetail() {
                   >
                     Apri
                   </Link>
-                  <button
+                  <Button
                     onClick={() => handleEdit(j)}
                     className="flex-1 px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                   >
                     ✏️
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => handleDelete(j.id)}
                     className="flex-1 px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                   >
                     🗑️
-                  </button>
+                  </Button>
                 </div>
               </div>
             );
@@ -620,18 +621,18 @@ export default function OrderDetail() {
                       >
                         Apri
                       </Link>
-                      <button
+                      <Button
                         onClick={() => handleEdit(j)}
                         className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
                       >
                         ✏️
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleDelete(j.id)}
                         className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
                       >
                         🗑️
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 );
@@ -706,7 +707,7 @@ export default function OrderDetail() {
             />
 
             <div className="flex flex-col md:flex-row md:justify-end gap-2">
-              <button
+              <Button
                 onClick={() => {
                   setShowForm(false);
                   setFormData({});
@@ -715,13 +716,13 @@ export default function OrderDetail() {
                 className="w-full md:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleSaveJob}
                 className="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Salva
-              </button>
+              </Button>
             </div>
           </div>
         </div>

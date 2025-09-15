@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -96,7 +97,7 @@ const Login = () => {
           Ricorda credenziali
         </label>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
           className="w-full py-3 rounded-xl font-semibold
@@ -105,7 +106,7 @@ const Login = () => {
                      disabled:opacity-50 transition-all"
         >
           {loading ? "Accesso in corso..." : "Accedi"}
-        </button>
+        </Button>
       </form>
     </div>
   );

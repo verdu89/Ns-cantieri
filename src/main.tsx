@@ -9,6 +9,8 @@ import "./index.css";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
+import ScrollToTopButton from "./components/ui/ScrollToTopButton";
+
 function RootApp() {
   useEffect(() => {
     // Nascondi lo splash quando l'app è pronta
@@ -23,7 +25,7 @@ function RootApp() {
     <AuthProvider>
       <ThemeProvider>
         <AppRoutes />
-        {/* ✅ Monta il Toaster una sola volta a livello root */}
+        <ScrollToTopButton />
         <Toaster position="top-right" reverseOrder={false} />
       </ThemeProvider>
     </AuthProvider>

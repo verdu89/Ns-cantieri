@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/Button";
 import { useState } from "react";
 import type { Job } from "@/types";
 import { jobAPI } from "@/api/jobs";
@@ -63,7 +64,7 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
                   ? job.notes
                   : "Nessuna nota presente."}
               </div>
-              <button
+              <Button
                 onClick={() => {
                   setNotes(job.notes ?? "");
                   setEditing(true);
@@ -71,7 +72,7 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
                 className="mt-3 w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
               >
                 ✏️ Modifica
-              </button>
+              </Button>
             </>
           ) : (
             <>
@@ -83,14 +84,14 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
                 rows={4}
               />
               <div className="flex flex-col sm:flex-row gap-2">
-                <button
+                <Button
                   onClick={handleSave}
                   disabled={saving}
                   className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   {saving ? "⏳ Salvataggio..." : "💾 Salva"}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
                     setNotes(job.notes ?? "");
                     setEditing(false);
@@ -98,7 +99,7 @@ export default function JobNotes({ job, setJob, orderNotes }: JobNotesProps) {
                   className="w-full sm:w-auto px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
                 >
                   Annulla
-                </button>
+                </Button>
               </div>
             </>
           )}
