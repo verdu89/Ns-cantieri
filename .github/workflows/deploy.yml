@@ -28,4 +28,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          force_orphan: true # 👈 garantisce creazione branch gh-pages al primo deploy
+          force_orphan: true # forza creazione branch gh-pages al primo deploy
+          user_name: github-actions[bot] # 👈 forza identità del commit
+          user_email: github-actions[bot]@users.noreply.github.com
