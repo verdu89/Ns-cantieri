@@ -102,11 +102,25 @@ export default function BackofficeNavbar() {
                 <Package size={16} /> Ordini
               </NavLink>
               <NavLink
+                to="/backoffice/montatori"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
+                onClick={() => setOpenDesktop(false)}
+              >
+                <Wrench size={16} /> Montatori
+              </NavLink>
+              <NavLink
                 to="/backoffice/documenti"
                 className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
                 onClick={() => setOpenDesktop(false)}
               >
                 <FileText size={16} /> Documenti
+              </NavLink>
+              <NavLink
+                to="/backoffice/report"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
+                onClick={() => setOpenDesktop(false)}
+              >
+                <BarChart3 size={16} /> Report
               </NavLink>
             </div>
           </div>
@@ -121,8 +135,14 @@ export default function BackofficeNavbar() {
             <NavLink to="/backoffice/orders" className={linkClass}>
               <Package size={16} /> Ordini
             </NavLink>
+            <NavLink to="/backoffice/montatori" className={linkClass}>
+              <Wrench size={16} /> Montatori
+            </NavLink>
             <NavLink to="/backoffice/documenti" className={linkClass}>
               <FileText size={16} /> Documenti
+            </NavLink>
+            <NavLink to="/backoffice/report" className={linkClass}>
+              <BarChart3 size={16} /> Report
             </NavLink>
           </div>
         )}

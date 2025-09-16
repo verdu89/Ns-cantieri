@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Menu, X, ArrowLeft } from "lucide-react";
+import AdminNavbar from "./AdminNavbar";
 import BackofficeNavbar from "./BackofficeNavbar";
 import WorkerNavbar from "./WorkerNavbar";
 import UserMenu from "@/components/UserMenu";
@@ -26,7 +27,11 @@ export default function NewsaverplastLayout() {
   const showBack = backPaths.some((path) => location.pathname.includes(path));
 
   const NavbarComponent =
-    user?.role === "worker" ? WorkerNavbar : BackofficeNavbar;
+    user?.role === "worker"
+      ? WorkerNavbar
+      : user?.role === "admin"
+      ? AdminNavbar
+      : BackofficeNavbar;
 
   return (
     <div

@@ -94,7 +94,7 @@ const AppRoutesInner = () => {
             </Route>
           )}
 
-          {/* Backoffice/Admin */}
+          {/* Backoffice + Admin */}
           {(user.role === "backoffice" || user.role === "admin") && (
             <Route element={<BackofficeLayout />}>
               <Route path="/backoffice/home" element={<Home />} />
@@ -108,7 +108,12 @@ const AppRoutesInner = () => {
               <Route path="/backoffice/newjob" element={<NewJob />} />
               <Route path="/backoffice/montatori" element={<Montatori />} />
               <Route path="/backoffice/documenti" element={<Documenti />} />
-              <Route path="/backoffice/report" element={<Report />} />
+
+              {/* ✅ SOLO ADMIN */}
+              {user.role === "admin" && (
+                <Route path="/backoffice/report" element={<Report />} />
+              )}
+
               <Route path="/backoffice/jobs/:id" element={<JobDetail />} />
               <Route path="/backoffice/settings" element={<Settings />} />
               <Route path="/backoffice/agenda" element={<Agenda />} />
