@@ -8,7 +8,7 @@ export default function AuthLayout() {
 
       <div className="hidden lg:flex w-1/2 text-gray-800 flex-col justify-center items-center p-16">
         <motion.img
-          src="/img/logo.png"
+          src={`${import.meta.env.BASE_URL}img/logo.png`}
           alt="NS Cantieri"
           className="h-20 mb-12 opacity-95" // Logo ingrandito
           initial={{ opacity: 0, y: -20 }}
@@ -38,7 +38,7 @@ export default function AuthLayout() {
         {/* Branding mobile (visibile solo < lg) */}
         <div className="flex flex-col items-center mb-8 lg:hidden">
           <img
-            src="/img/logo.png"
+            src={`${import.meta.env.BASE_URL}img/logo.png`}
             alt="NS Cantieri"
             className="h-14 mb-3 opacity-95"
           />

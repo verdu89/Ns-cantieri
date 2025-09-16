@@ -47,7 +47,7 @@ const AuthLayoutFullBg = () => {
             className="flex flex-col items-center mb-6 sm:mb-8 text-center"
           >
             <motion.img
-              src="/logo.png"
+              src={`${import.meta.env.BASE_URL}img/logo.png`}
               alt="Logo"
               className="w-16 h-16 sm:w-20 sm:h-20 mb-4 drop-shadow-lg"
               animate={{ y: [0, -6, 0] }}
