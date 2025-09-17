@@ -30,7 +30,6 @@ import JobCheckoutReport from "./job/JobCheckoutReport";
 // 🔹 Utils date centralizzate
 import { toInputDateTime, toDbDate } from "@/utils/date";
 
-/* ===================== MAIN ===================== */
 export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const jobId = id ?? "";
@@ -98,7 +97,6 @@ export default function JobDetail() {
         return;
       }
 
-      // 🔹 NON aggiorno più lo stato automaticamente
       setJob(j);
       setAssignedWorkers(j.assignedWorkers ?? []);
       setPlannedLocal(j.plannedDate ? toInputDateTime(j.plannedDate) : "");
@@ -173,6 +171,10 @@ export default function JobDetail() {
       (currentUser.role === "admin" &&
         ["assegnato", "in_corso", "in_ritardo"].includes(job.status)));
 
+  // 🔹 I worker possono editare solo se hanno checkout disponibile
+  const canEdit =
+    isBackoffice || (currentUser.role === "worker" && canDoCheckout);
+
   /* ========== Render ========== */
   return (
     <div className="space-y-6">
@@ -212,6 +214,7 @@ export default function JobDetail() {
         currentUserRole={
           currentUser.role as "montatore" | "backoffice" | "admin"
         }
+        readOnly={!canEdit}
       />
 
       {/* DOCUMENTI */}
@@ -221,11 +224,16 @@ export default function JobDetail() {
         setDocs={setDocs}
         currentUserId={currentUser.id}
         jobId={job.id}
-        canEdit={true}
+        canEdit={canEdit}
       />
 
       {/* NOTE INTERVENTO */}
-      <JobNotes job={job} setJob={setJob} orderNotes={orderNotes} />
+      <JobNotes
+        job={job}
+        setJob={setJob}
+        orderNotes={orderNotes}
+        readOnly={!canEdit}
+      />
 
       {/* OPERATIVITÀ / CHECKOUT */}
       {canDoCheckout && (

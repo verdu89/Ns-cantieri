@@ -11,6 +11,7 @@ interface JobPaymentsProps {
   setPayments: (p: Payment[]) => void;
   isBackoffice: boolean;
   currentUserRole: string; // "admin" | "backoffice" | "worker"
+  readOnly?: boolean;
 }
 
 export default function JobPayments({
@@ -19,6 +20,7 @@ export default function JobPayments({
   setPayments,
   isBackoffice,
   currentUserRole,
+  readOnly = false,
 }: JobPaymentsProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,14 +34,17 @@ export default function JobPayments({
   }, [editing]);
 
   const updatePayment = (id: string, changes: Partial<Payment>) => {
+    if (readOnly) return;
     setPayments(payments.map((p) => (p.id === id ? { ...p, ...changes } : p)));
   };
 
   const removePayment = (id: string) => {
+    if (readOnly) return;
     setPayments(payments.filter((p) => p.id !== id));
   };
 
   const addPayment = () => {
+    if (readOnly) return;
     const row: Payment = {
       id: `tmp-${Date.now()}`,
       jobId: job.id,
@@ -54,6 +59,7 @@ export default function JobPayments({
 
   // 💾 salva lato backoffice
   const savePayments = async () => {
+    if (readOnly) return;
     try {
       setSaving(true);
       await supabase.from("payments").delete().eq("job_id", job.id);
@@ -100,6 +106,7 @@ export default function JobPayments({
 
   // 💾 update immediato lato worker
   const updatePaymentDirect = async (id: string, changes: Partial<Payment>) => {
+    if (readOnly) return;
     try {
       const updated = payments.map((p) =>
         p.id === id ? { ...p, ...changes } : p
@@ -257,17 +264,19 @@ export default function JobPayments({
 
             {payments.length > 0 && renderSummary()}
 
-            <Button
-              onClick={() => setEditing(true)}
-              className="mt-3 w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
-            >
-              ✏️ Modifica
-            </Button>
+            {!readOnly && (
+              <Button
+                onClick={() => setEditing(true)}
+                className="mt-3 w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+              >
+                ✏️ Modifica
+              </Button>
+            )}
           </div>
         )}
 
         {/* BACKOFFICE EDITING */}
-        {isBackoffice && editing && (
+        {isBackoffice && editing && !readOnly && (
           <div ref={editRef} className="space-y-3">
             {payments.map((p) => (
               <div
@@ -419,62 +428,72 @@ export default function JobPayments({
                         })}
                       </td>
                       <td className="p-2 text-center">
-                        <div className="flex flex-col gap-1 text-sm items-start sm:items-center">
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={p.collected}
-                              onChange={(e) =>
-                                updatePaymentDirect(p.id, {
-                                  collected: e.target.checked,
-                                  partial: false,
-                                  collectedAmount: e.target.checked
-                                    ? p.amount
-                                    : 0,
-                                })
-                              }
-                              className="w-4 h-4 rounded border-gray-300 accent-blue-600"
-                            />
-                            Incassato
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={p.partial && !p.collected}
-                              onChange={(e) =>
-                                updatePaymentDirect(p.id, {
-                                  collected: false,
-                                  partial: e.target.checked,
-                                  collectedAmount: e.target.checked
-                                    ? p.collectedAmount
-                                    : 0,
-                                })
-                              }
-                              className="w-4 h-4 rounded border-gray-300 accent-blue-600"
-                            />
-                            Parziale
-                          </label>
-                          {p.partial && !p.collected && (
-                            <input
-                              type="number"
-                              value={p.collectedAmount ?? ""}
-                              placeholder="Importo incassato"
-                              onChange={(e) =>
-                                updatePaymentDirect(p.id, {
-                                  collectedAmount: parseFloat(
-                                    e.target.value || "0"
-                                  ),
-                                })
-                              }
-                              className="border rounded p-2 text-sm w-32"
-                            />
-                          )}
-                          {!p.collected && !p.partial && (
-                            <div className="text-gray-500 italic">
-                              ❌ Non incassato
-                            </div>
-                          )}
-                        </div>
+                        {readOnly ? (
+                          <span>
+                            {p.collected
+                              ? "✅ Incassato"
+                              : p.partial
+                              ? "⚠️ Parziale"
+                              : "❌ Non incassato"}
+                          </span>
+                        ) : (
+                          <div className="flex flex-col gap-1 text-sm items-start sm:items-center">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={p.collected}
+                                onChange={(e) =>
+                                  updatePaymentDirect(p.id, {
+                                    collected: e.target.checked,
+                                    partial: false,
+                                    collectedAmount: e.target.checked
+                                      ? p.amount
+                                      : 0,
+                                  })
+                                }
+                                className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                              />
+                              Incassato
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={p.partial && !p.collected}
+                                onChange={(e) =>
+                                  updatePaymentDirect(p.id, {
+                                    collected: false,
+                                    partial: e.target.checked,
+                                    collectedAmount: e.target.checked
+                                      ? p.collectedAmount
+                                      : 0,
+                                  })
+                                }
+                                className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                              />
+                              Parziale
+                            </label>
+                            {p.partial && !p.collected && (
+                              <input
+                                type="number"
+                                value={p.collectedAmount ?? ""}
+                                placeholder="Importo incassato"
+                                onChange={(e) =>
+                                  updatePaymentDirect(p.id, {
+                                    collectedAmount: parseFloat(
+                                      e.target.value || "0"
+                                    ),
+                                  })
+                                }
+                                className="border rounded p-2 text-sm w-32"
+                              />
+                            )}
+                            {!p.collected && !p.partial && (
+                              <div className="text-gray-500 italic">
+                                ❌ Non incassato
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -499,55 +518,71 @@ export default function JobPayments({
                     </span>
                   </div>
                   <div className="mt-2 flex flex-col gap-1 text-sm">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={p.collected}
-                        onChange={(e) =>
-                          updatePaymentDirect(p.id, {
-                            collected: e.target.checked,
-                            partial: false,
-                            collectedAmount: e.target.checked ? p.amount : 0,
-                          })
-                        }
-                        className="w-4 h-4 rounded border-gray-300 accent-blue-600"
-                      />
-                      Incassato
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={p.partial && !p.collected}
-                        onChange={(e) =>
-                          updatePaymentDirect(p.id, {
-                            collected: false,
-                            partial: e.target.checked,
-                            collectedAmount: e.target.checked
-                              ? p.collectedAmount
-                              : 0,
-                          })
-                        }
-                        className="w-4 h-4 rounded border-gray-300 accent-blue-600"
-                      />
-                      Parziale
-                    </label>
-                    {p.partial && !p.collected && (
-                      <input
-                        type="number"
-                        value={p.collectedAmount ?? ""}
-                        placeholder="Importo incassato"
-                        onChange={(e) =>
-                          updatePaymentDirect(p.id, {
-                            collectedAmount: parseFloat(e.target.value || "0"),
-                          })
-                        }
-                        className="border rounded p-2 text-sm w-full"
-                      />
-                    )}
-                    {!p.collected && !p.partial && (
-                      <div className="text-gray-500 italic">
-                        ❌ Non incassato
-                      </div>
+                    {readOnly ? (
+                      <span>
+                        {p.collected
+                          ? "✅ Incassato"
+                          : p.partial
+                          ? "⚠️ Parziale"
+                          : "❌ Non incassato"}
+                      </span>
+                    ) : (
+                      <>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={p.collected}
+                            onChange={(e) =>
+                              updatePaymentDirect(p.id, {
+                                collected: e.target.checked,
+                                partial: false,
+                                collectedAmount: e.target.checked
+                                  ? p.amount
+                                  : 0,
+                              })
+                            }
+                            className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                          />
+                          Incassato
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={p.partial && !p.collected}
+                            onChange={(e) =>
+                              updatePaymentDirect(p.id, {
+                                collected: false,
+                                partial: e.target.checked,
+                                collectedAmount: e.target.checked
+                                  ? p.collectedAmount
+                                  : 0,
+                              })
+                            }
+                            className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                          />
+                          Parziale
+                        </label>
+                        {p.partial && !p.collected && (
+                          <input
+                            type="number"
+                            value={p.collectedAmount ?? ""}
+                            placeholder="Importo incassato"
+                            onChange={(e) =>
+                              updatePaymentDirect(p.id, {
+                                collectedAmount: parseFloat(
+                                  e.target.value || "0"
+                                ),
+                              })
+                            }
+                            className="border rounded p-2 text-sm w-full"
+                          />
+                        )}
+                        {!p.collected && !p.partial && (
+                          <div className="text-gray-500 italic">
+                            ❌ Non incassato
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
