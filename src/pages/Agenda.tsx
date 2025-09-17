@@ -1,12 +1,19 @@
 import { Button } from "@/components/ui/Button";
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  RefreshCw,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { jobAPI } from "@/api/jobs";
 import { workerAPI } from "@/api/workers";
 import type { Job, User } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { STATUS_CONFIG } from "@/config/statusConfig";
+import { toast } from "react-hot-toast";
 
 const STATUSES = Object.keys(STATUS_CONFIG) as Job["status"][];
 
@@ -17,17 +24,14 @@ function getEffectiveStatus(job: Job): Job["status"] {
   const now = new Date();
   const planned = new Date(job.plannedDate);
 
-  // Non toccare completati, da_completare, annullati
   if (["completato", "da_completare", "annullato"].includes(job.status)) {
     return job.status;
   }
 
-  // Se è assegnato e l'orario è scattato → passa a in_corso
   if (job.status === "assegnato" && planned <= now) {
     return "in_corso";
   }
 
-  // Se è in_corso e sono passate le 17:00 del giorno pianificato → in_ritardo
   if (job.status === "in_corso") {
     const endOfDay = new Date(planned);
     endOfDay.setHours(17, 0, 0, 0);
@@ -103,9 +107,12 @@ export default function Agenda() {
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
     try {
       let j: Job[] = [];
 
@@ -113,10 +120,9 @@ export default function Agenda() {
         j = await jobAPI.listAssigned(String(user.workerId));
       } else {
         j = await jobAPI.list();
-        await workerAPI.list(); // caricati ma non usati qui
+        await workerAPI.list();
       }
 
-      // 🔹 Sincronizza stati con DB
       const syncedJobs: Job[] = [];
       for (const job of j) {
         const effectiveStatus = getEffectiveStatus(job);
@@ -126,6 +132,7 @@ export default function Agenda() {
             syncedJobs.push({ ...job, status: effectiveStatus });
           } catch (err) {
             console.error("Errore aggiornando stato job:", job.id, err);
+            toast.error("Errore aggiornando stato di un lavoro.");
             syncedJobs.push(job);
           }
         } else {
@@ -134,8 +141,12 @@ export default function Agenda() {
       }
 
       setJobs(syncedJobs);
+    } catch (err) {
+      console.error("Errore caricando lavori:", err);
+      toast.error("Errore durante il caricamento dei lavori.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -144,9 +155,15 @@ export default function Agenda() {
   }, [user]);
 
   useEffect(() => {
-    const handler = () => load();
+    const handler = () => load(true);
     window.addEventListener("jobs:updated", handler);
     return () => window.removeEventListener("jobs:updated", handler);
+  }, []);
+
+  // refresh automatico ogni 2 minuti
+  useEffect(() => {
+    const interval = setInterval(() => load(true), 120000);
+    return () => clearInterval(interval);
   }, []);
 
   const jobsByDay = useMemo(() => {
@@ -195,57 +212,76 @@ export default function Agenda() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button
-            className="p-2 rounded-lg border bg-white hover:bg-gray-50"
+            className="p-3 rounded-lg border bg-white hover:bg-gray-50"
             onClick={() => setWeekStart((d) => addDays(d, -7))}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={18} />
           </Button>
           <Button
-            className="px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-sm"
+            className="px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm"
             onClick={() => setWeekStart(getMonday(new Date()))}
           >
             Oggi
           </Button>
           <Button
-            className="p-2 rounded-lg border bg-white hover:bg-gray-50"
+            className="p-3 rounded-lg border bg-white hover:bg-gray-50"
             onClick={() => setWeekStart((d) => addDays(d, 7))}
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={18} />
           </Button>
           <Button
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-white hover:bg-gray-50 text-sm"
-            onClick={load}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm"
+            onClick={() => load(true)}
+            disabled={refreshing}
           >
-            <RefreshCw size={16} /> Aggiorna
+            {refreshing ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <RefreshCw size={16} />
+            )}
+            {refreshing ? "Aggiornamento…" : "Aggiorna"}
           </Button>
         </div>
       </div>
 
-      {/* Giorni (Calendario) */}
-      <div className="block md:hidden space-y-4">
-        {days.map((d) => (
-          <DayCard
-            key={d.toISOString()}
-            d={d}
-            list={jobsByDay.get(toLocalISODate(d)) ?? []}
-            isToday={toLocalISODate(d) === toLocalISODate(new Date())}
-            userRole={user?.role}
-          />
-        ))}
-      </div>
-      <div className="hidden md:grid md:grid-cols-5 gap-4">
-        {days.map((d) => (
-          <DayCard
-            key={d.toISOString()}
-            d={d}
-            list={jobsByDay.get(toLocalISODate(d)) ?? []}
-            isToday={toLocalISODate(d) === toLocalISODate(new Date())}
-            userRole={user?.role}
-          />
-        ))}
-      </div>
+      {/* Giorni */}
+      {loading ? (
+        <div className="flex justify-center items-center py-10 text-gray-500">
+          <Loader2 size={20} className="animate-spin mr-2" />
+          Caricamento lavori…
+        </div>
+      ) : jobs.length === 0 ? (
+        <div className="text-center text-gray-500 py-10">
+          Nessun lavoro pianificato per questa settimana
+        </div>
+      ) : (
+        <>
+          <div className="block md:hidden space-y-4">
+            {days.map((d) => (
+              <DayCard
+                key={d.toISOString()}
+                d={d}
+                list={jobsByDay.get(toLocalISODate(d)) ?? []}
+                isToday={toLocalISODate(d) === toLocalISODate(new Date())}
+                userRole={user?.role}
+              />
+            ))}
+          </div>
+          <div className="hidden md:grid md:grid-cols-5 gap-4">
+            {days.map((d) => (
+              <DayCard
+                key={d.toISOString()}
+                d={d}
+                list={jobsByDay.get(toLocalISODate(d)) ?? []}
+                isToday={toLocalISODate(d) === toLocalISODate(new Date())}
+                userRole={user?.role}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
-      {/* KPI tabella compatta */}
+      {/* KPI */}
       <div className="overflow-x-auto rounded-lg border bg-white">
         <table className="w-full text-sm">
           <thead>
@@ -274,13 +310,11 @@ export default function Agenda() {
           </tbody>
         </table>
       </div>
-
-      {loading && <div className="text-sm text-gray-500">Caricamento…</div>}
     </div>
   );
 }
 
-/* ========= Sottocomponente ========= */
+/* ========= DayCard ========= */
 function DayCard({
   d,
   list,
@@ -295,13 +329,18 @@ function DayCard({
   return (
     <div
       className={`rounded-xl border bg-white ${
-        isToday ? "ring-2 ring-brand/30" : ""
+        isToday ? "ring-2 ring-brand/40" : ""
       }`}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b bg-gray-50 rounded-t-xl">
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <Calendar size={14} />
           <span className="font-medium">{formatDayHeader(d)}</span>
+          {isToday && (
+            <span className="ml-2 text-xs px-2 py-0.5 bg-brand/20 text-brand rounded-full">
+              Oggi
+            </span>
+          )}
         </div>
         <span className="text-xs text-gray-500">{list.length} lavori</span>
       </div>
@@ -314,7 +353,9 @@ function DayCard({
             userRole === "admin" || userRole === "backoffice"
               ? `/backoffice/jobs/${encodeURIComponent(j.id)}`
               : `/jobs/${encodeURIComponent(j.id)}`;
+
           const cfg = STATUS_CONFIG[j.status];
+
           return (
             <Link
               key={j.id}
@@ -338,7 +379,7 @@ function DayCard({
                 <span className="font-semibold">
                   {formatTime(j.plannedDate)}
                 </span>
-                {j.customer?.name && (
+                {j.customer && (
                   <span className="text-gray-700">· {j.customer.name}</span>
                 )}
               </div>
