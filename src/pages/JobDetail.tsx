@@ -159,12 +159,20 @@ export default function JobDetail() {
     return <div className="p-6 text-red-600">Intervento non trovato</div>;
 
   /* ========== Logica bottone checkout ========== */
+  const checkoutableStatuses = [
+    "assegnato",
+    "in_corso",
+    "in_ritardo",
+    "da_completare",
+  ];
+
   const canDoCheckout =
-    (currentUser.role === "worker" &&
-      (job.status === "in_corso" || job.status === "in_ritardo")) || // Worker può fare checkout se in corso o in ritardo
-    isBackoffice ||
-    (currentUser.role === "admin" &&
-      ["assegnato", "in_corso", "in_ritardo"].includes(job.status)); // Backoffice e Admin possono fare checkout anche se in stato "assegnato", "in_corso" o "in_ritardo"
+    checkoutableStatuses.includes(job.status) &&
+    ((currentUser.role === "worker" &&
+      ["in_corso", "in_ritardo"].includes(job.status)) ||
+      currentUser.role === "backoffice" ||
+      (currentUser.role === "admin" &&
+        ["assegnato", "in_corso", "in_ritardo"].includes(job.status)));
 
   /* ========== Render ========== */
   return (
