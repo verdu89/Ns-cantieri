@@ -9,6 +9,7 @@ import {
   BarChart3,
   CalendarClock,
   ChevronDown,
+  DollarSign, // 👈 nuova icona
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -116,6 +117,13 @@ export default function BackofficeNavbar() {
                 <FileText size={16} /> Documenti
               </NavLink>
               <NavLink
+                to="/backoffice/economic-dashboard"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
+                onClick={() => setOpenDesktop(false)}
+              >
+                <DollarSign size={16} /> Gestione Economica
+              </NavLink>
+              <NavLink
                 to="/backoffice/report"
                 className="flex items-center gap-2 px-3 py-2 text-sm rounded hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-800"
                 onClick={() => setOpenDesktop(false)}
@@ -140,6 +148,9 @@ export default function BackofficeNavbar() {
             </NavLink>
             <NavLink to="/backoffice/documenti" className={linkClass}>
               <FileText size={16} /> Documenti
+            </NavLink>
+            <NavLink to="/backoffice/economic-dashboard" className={linkClass}>
+              <DollarSign size={16} /> Gestione Economica
             </NavLink>
             <NavLink to="/backoffice/report" className={linkClass}>
               <BarChart3 size={16} /> Report

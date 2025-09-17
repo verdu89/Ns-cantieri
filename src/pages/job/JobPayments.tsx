@@ -11,6 +11,7 @@ interface JobPaymentsProps {
   setPayments: (p: Payment[]) => void;
   isBackoffice: boolean;
   currentUserRole: string; // "admin" | "backoffice" | "worker"
+  readOnly?: boolean;
 }
 
 export default function JobPayments({
@@ -19,6 +20,7 @@ export default function JobPayments({
   setPayments,
   isBackoffice,
   currentUserRole,
+  readOnly = false,
 }: JobPaymentsProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,14 +34,17 @@ export default function JobPayments({
   }, [editing]);
 
   const updatePayment = (id: string, changes: Partial<Payment>) => {
+    if (readOnly) return;
     setPayments(payments.map((p) => (p.id === id ? { ...p, ...changes } : p)));
   };
 
   const removePayment = (id: string) => {
+    if (readOnly) return;
     setPayments(payments.filter((p) => p.id !== id));
   };
 
   const addPayment = () => {
+    if (readOnly) return;
     const row: Payment = {
       id: `tmp-${Date.now()}`,
       jobId: job.id,
@@ -54,6 +59,7 @@ export default function JobPayments({
 
   // 💾 salva lato backoffice
   const savePayments = async () => {
+    if (readOnly) return;
     try {
       setSaving(true);
       await supabase.from("payments").delete().eq("job_id", job.id);
@@ -100,6 +106,7 @@ export default function JobPayments({
 
   // 💾 update immediato lato worker
   const updatePaymentDirect = async (id: string, changes: Partial<Payment>) => {
+    if (readOnly) return;
     try {
       const updated = payments.map((p) =>
         p.id === id ? { ...p, ...changes } : p
@@ -133,91 +140,151 @@ export default function JobPayments({
     0
   );
 
+  const renderSummary = () => (
+    <div className="border-t pt-3 text-sm space-y-1">
+      <div>
+        <strong>Totale previsto:</strong>{" "}
+        {total.toLocaleString("it-IT", { style: "currency", currency: "EUR" })}
+      </div>
+      <div className="text-green-600">
+        <strong>Totale incassato:</strong>{" "}
+        {totalCollected.toLocaleString("it-IT", {
+          style: "currency",
+          currency: "EUR",
+        })}
+      </div>
+      <div
+        className={
+          total - totalCollected > 0
+            ? "text-red-700 font-bold"
+            : "text-green-700 font-bold"
+        }
+      >
+        <strong>Residuo:</strong>{" "}
+        {(total - totalCollected).toLocaleString("it-IT", {
+          style: "currency",
+          currency: "EUR",
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <Card className="scroll-on-open">
       <CardHeader>
         <CardTitle>💰 Pagamenti</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* BACKOFFICE (admin + backoffice) */}
+        {/* BACKOFFICE (view) */}
         {isBackoffice && !editing && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {payments.length === 0 ? (
               <div className="text-sm text-gray-500">
                 Nessun pagamento registrato.
               </div>
             ) : (
-              <ul className="space-y-1">
-                {payments.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex justify-between border p-2 rounded"
-                  >
-                    <span className="font-medium">{p.label}</span>
-                    <span className="font-bold text-blue-700">
-                      {p.amount.toLocaleString("it-IT", {
-                        style: "currency",
-                        currency: "EUR",
-                      })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {/* Desktop tabella */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="min-w-full border text-sm">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="p-2 text-left">Etichetta</th>
+                        <th className="p-2 text-right">Importo</th>
+                        <th className="p-2 text-center">Stato</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payments.map((p) => (
+                        <tr key={p.id} className="border-t">
+                          <td className="p-2 font-medium">{p.label}</td>
+                          <td className="p-2 font-bold text-blue-700 text-right">
+                            {p.amount.toLocaleString("it-IT", {
+                              style: "currency",
+                              currency: "EUR",
+                            })}
+                          </td>
+                          <td className="p-2 text-center">
+                            {p.collected ? (
+                              <span className="text-green-700 font-semibold">
+                                ✅ Incassato
+                              </span>
+                            ) : p.partial ? (
+                              <span className="text-yellow-600 font-semibold">
+                                ⚠️ Parziale
+                              </span>
+                            ) : (
+                              <span className="text-red-600 font-semibold">
+                                ❌ Non incassato
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="sm:hidden space-y-2">
+                  {payments.map((p) => (
+                    <div
+                      key={p.id}
+                      className="border rounded-lg p-3 shadow-sm bg-white"
+                    >
+                      <div className="flex justify-between">
+                        <span className="font-medium">{p.label}</span>
+                        <span className="font-bold text-blue-700">
+                          {p.amount.toLocaleString("it-IT", {
+                            style: "currency",
+                            currency: "EUR",
+                          })}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-sm">
+                        {p.collected ? (
+                          <span className="text-green-700 font-semibold">
+                            ✅ Incassato
+                          </span>
+                        ) : p.partial ? (
+                          <span className="text-yellow-600 font-semibold">
+                            ⚠️ Parziale
+                          </span>
+                        ) : (
+                          <span className="text-red-600 font-semibold">
+                            ❌ Non incassato
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
 
-            {/* Riepilogo */}
-            {payments.length > 0 && (
-              <div className="border-t pt-2 text-sm space-y-1">
-                <div>
-                  <strong>Totale previsto:</strong>{" "}
-                  {total.toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
-                </div>
-                <div className="text-green-600">
-                  <strong>Totale incassato:</strong>{" "}
-                  {totalCollected.toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
-                </div>
-                <div
-                  className={
-                    total - totalCollected > 0
-                      ? "text-red-700 font-bold"
-                      : "text-green-700 font-bold"
-                  }
-                >
-                  <strong>Residuo:</strong>{" "}
-                  {(total - totalCollected).toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
-                </div>
-              </div>
-            )}
+            {payments.length > 0 && renderSummary()}
 
-            {/* Bottone ottimizzato mobile */}
-            <Button
-              onClick={() => setEditing(true)}
-              className="mt-3 w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
-            >
-              ✏️ Modifica
-            </Button>
+            {!readOnly && (
+              <Button
+                onClick={() => setEditing(true)}
+                className="mt-3 w-full sm:w-auto px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
+              >
+                ✏️ Modifica
+              </Button>
+            )}
           </div>
         )}
 
         {/* BACKOFFICE EDITING */}
-        {isBackoffice && editing && (
+        {isBackoffice && editing && !readOnly && (
           <div ref={editRef} className="space-y-3">
             {payments.map((p) => (
               <div
                 key={p.id}
-                className="flex flex-col sm:flex-row items-start justify-between border p-2 rounded gap-2"
+                className="border rounded-lg p-3 shadow-sm bg-white flex flex-col gap-3"
               >
-                {/* Importo */}
-                <div className="flex flex-col items-start w-full sm:w-32">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  {/* Importo */}
                   <input
                     type="number"
                     value={p.amount}
@@ -226,75 +293,72 @@ export default function JobPayments({
                         amount: parseFloat(e.target.value || "0"),
                       })
                     }
-                    className="border rounded p-2 w-full font-bold text-blue-700"
+                    className="border rounded p-2 w-full sm:w-32 font-bold text-blue-700"
                   />
-                </div>
 
-                {/* Label + stato */}
-                <div className="flex-1 flex flex-col gap-2 w-full">
+                  {/* Label */}
                   <input
                     value={p.label}
                     onChange={(e) =>
                       updatePayment(p.id, { label: e.target.value })
                     }
-                    className="border rounded p-2 w-full"
+                    className="border rounded p-2 flex-1"
                   />
+                </div>
 
-                  <div className="flex flex-col gap-1 text-sm">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={p.collected}
-                        onChange={(e) =>
-                          updatePayment(p.id, {
-                            collected: e.target.checked,
-                            partial: false,
-                            collectedAmount: e.target.checked ? p.amount : 0,
-                          })
-                        }
-                        className="w-4 h-4 rounded border-gray-300 accent-blue-600"
-                      />
-                      Incassato
-                    </label>
+                {/* Stato */}
+                <div className="flex flex-col gap-1 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={p.collected}
+                      onChange={(e) =>
+                        updatePayment(p.id, {
+                          collected: e.target.checked,
+                          partial: false,
+                          collectedAmount: e.target.checked ? p.amount : 0,
+                        })
+                      }
+                      className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                    />
+                    Incassato
+                  </label>
 
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={p.partial && !p.collected}
-                        onChange={(e) =>
-                          updatePayment(p.id, {
-                            collected: false,
-                            partial: e.target.checked,
-                            collectedAmount: e.target.checked
-                              ? p.collectedAmount
-                              : 0,
-                          })
-                        }
-                        className="w-4 h-4 rounded border-gray-300 accent-blue-600"
-                      />
-                      Parziale
-                    </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={p.partial && !p.collected}
+                      onChange={(e) =>
+                        updatePayment(p.id, {
+                          collected: false,
+                          partial: e.target.checked,
+                          collectedAmount: e.target.checked
+                            ? p.collectedAmount
+                            : 0,
+                        })
+                      }
+                      className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                    />
+                    Parziale
+                  </label>
 
-                    {p.partial && !p.collected && (
-                      <input
-                        type="number"
-                        value={p.collectedAmount ?? ""}
-                        placeholder="Importo incassato"
-                        onChange={(e) =>
-                          updatePayment(p.id, {
-                            collectedAmount: parseFloat(e.target.value || "0"),
-                          })
-                        }
-                        className="border rounded p-2 text-sm w-full sm:w-32"
-                      />
-                    )}
+                  {p.partial && !p.collected && (
+                    <input
+                      type="number"
+                      value={p.collectedAmount ?? ""}
+                      placeholder="Importo incassato"
+                      onChange={(e) =>
+                        updatePayment(p.id, {
+                          collectedAmount: parseFloat(e.target.value || "0"),
+                        })
+                      }
+                      className="border rounded p-2 text-sm w-full sm:w-32"
+                    />
+                  )}
 
-                    {!p.collected && !p.partial && (
-                      <div className="text-gray-500 italic">
-                        ❌ Non incassato
-                      </div>
-                    )}
-                  </div>
+                  {!p.collected && !p.partial && (
+                    <div className="text-gray-500 italic">❌ Non incassato</div>
+                  )}
                 </div>
 
                 {/* Elimina */}
@@ -314,38 +378,7 @@ export default function JobPayments({
               ➕ Aggiungi pagamento
             </Button>
 
-            {/* Riepilogo */}
-            {payments.length > 0 && (
-              <div className="border-t pt-2 text-sm space-y-1">
-                <div>
-                  <strong>Totale previsto:</strong>{" "}
-                  {total.toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
-                </div>
-                <div className="text-green-600">
-                  <strong>Totale incassato:</strong>{" "}
-                  {totalCollected.toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
-                </div>
-                <div
-                  className={
-                    total - totalCollected > 0
-                      ? "text-red-700 font-bold"
-                      : "text-green-700 font-bold"
-                  }
-                >
-                  <strong>Residuo:</strong>{" "}
-                  {(total - totalCollected).toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
-                </div>
-              </div>
-            )}
+            {payments.length > 0 && renderSummary()}
 
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
@@ -373,109 +406,190 @@ export default function JobPayments({
                 Nessun pagamento previsto
               </div>
             )}
-            {payments.map((p) => (
-              <div
-                key={p.id}
-                className="border rounded-lg p-3 flex flex-col gap-2 bg-white shadow-sm"
-              >
-                <div className="flex justify-between">
-                  <span className="font-medium">{p.label}</span>
-                  <span className="font-bold text-blue-700">
-                    {p.amount.toLocaleString("it-IT", {
-                      style: "currency",
-                      currency: "EUR",
-                    })}
-                  </span>
-                </div>
 
-                {/* Stato pagamento */}
-                <div className="flex flex-col gap-1 text-sm">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={p.collected}
-                      onChange={(e) =>
-                        updatePaymentDirect(p.id, {
-                          collected: e.target.checked,
-                          partial: false,
-                          collectedAmount: e.target.checked ? p.amount : 0,
-                        })
-                      }
-                      className="w-4 h-4 rounded border-gray-300 accent-blue-600"
-                    />
-                    Incassato
-                  </label>
+            {/* Desktop tabella */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="min-w-full border text-sm">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2 text-left">Etichetta</th>
+                    <th className="p-2 text-right">Importo</th>
+                    <th className="p-2 text-center">Stato</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((p) => (
+                    <tr key={p.id} className="border-t">
+                      <td className="p-2">{p.label}</td>
+                      <td className="p-2 font-bold text-blue-700 text-right">
+                        {p.amount.toLocaleString("it-IT", {
+                          style: "currency",
+                          currency: "EUR",
+                        })}
+                      </td>
+                      <td className="p-2 text-center">
+                        {readOnly ? (
+                          <span>
+                            {p.collected
+                              ? "✅ Incassato"
+                              : p.partial
+                              ? "⚠️ Parziale"
+                              : "❌ Non incassato"}
+                          </span>
+                        ) : (
+                          <div className="flex flex-col gap-1 text-sm items-start sm:items-center">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={p.collected}
+                                onChange={(e) =>
+                                  updatePaymentDirect(p.id, {
+                                    collected: e.target.checked,
+                                    partial: false,
+                                    collectedAmount: e.target.checked
+                                      ? p.amount
+                                      : 0,
+                                  })
+                                }
+                                className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                              />
+                              Incassato
+                            </label>
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={p.partial && !p.collected}
+                                onChange={(e) =>
+                                  updatePaymentDirect(p.id, {
+                                    collected: false,
+                                    partial: e.target.checked,
+                                    collectedAmount: e.target.checked
+                                      ? p.collectedAmount
+                                      : 0,
+                                  })
+                                }
+                                className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                              />
+                              Parziale
+                            </label>
+                            {p.partial && !p.collected && (
+                              <input
+                                type="number"
+                                value={p.collectedAmount ?? ""}
+                                placeholder="Importo incassato"
+                                onChange={(e) =>
+                                  updatePaymentDirect(p.id, {
+                                    collectedAmount: parseFloat(
+                                      e.target.value || "0"
+                                    ),
+                                  })
+                                }
+                                className="border rounded p-2 text-sm w-32"
+                              />
+                            )}
+                            {!p.collected && !p.partial && (
+                              <div className="text-gray-500 italic">
+                                ❌ Non incassato
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={p.partial && !p.collected}
-                      onChange={(e) =>
-                        updatePaymentDirect(p.id, {
-                          collected: false,
-                          partial: e.target.checked,
-                          collectedAmount: e.target.checked
-                            ? p.collectedAmount
-                            : 0,
-                        })
-                      }
-                      className="w-4 h-4 rounded border-gray-300 accent-blue-600"
-                    />
-                    Parziale
-                  </label>
-
-                  {p.partial && !p.collected && (
-                    <input
-                      type="number"
-                      value={p.collectedAmount ?? ""}
-                      placeholder="Importo incassato"
-                      onChange={(e) =>
-                        updatePaymentDirect(p.id, {
-                          collectedAmount: parseFloat(e.target.value || "0"),
-                        })
-                      }
-                      className="border rounded p-2 text-sm w-full sm:w-32"
-                    />
-                  )}
-
-                  {!p.collected && !p.partial && (
-                    <div className="text-gray-500 italic">❌ Non incassato</div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {payments.length > 0 && (
-              <div className="border-t pt-2 text-sm space-y-1">
-                <div>
-                  <strong>Totale previsto:</strong>{" "}
-                  {total.toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
-                </div>
-                <div className="text-green-600">
-                  <strong>Totale incassato:</strong>{" "}
-                  {totalCollected.toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
-                </div>
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-2">
+              {payments.map((p) => (
                 <div
-                  className={
-                    total - totalCollected > 0
-                      ? "text-red-700 font-bold"
-                      : "text-green-700 font-bold"
-                  }
+                  key={p.id}
+                  className="border rounded-lg p-3 shadow-sm bg-white"
                 >
-                  <strong>Residuo:</strong>{" "}
-                  {(total - totalCollected).toLocaleString("it-IT", {
-                    style: "currency",
-                    currency: "EUR",
-                  })}
+                  <div className="flex justify-between">
+                    <span className="font-medium">{p.label}</span>
+                    <span className="font-bold text-blue-700">
+                      {p.amount.toLocaleString("it-IT", {
+                        style: "currency",
+                        currency: "EUR",
+                      })}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-col gap-1 text-sm">
+                    {readOnly ? (
+                      <span>
+                        {p.collected
+                          ? "✅ Incassato"
+                          : p.partial
+                          ? "⚠️ Parziale"
+                          : "❌ Non incassato"}
+                      </span>
+                    ) : (
+                      <>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={p.collected}
+                            onChange={(e) =>
+                              updatePaymentDirect(p.id, {
+                                collected: e.target.checked,
+                                partial: false,
+                                collectedAmount: e.target.checked
+                                  ? p.amount
+                                  : 0,
+                              })
+                            }
+                            className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                          />
+                          Incassato
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={p.partial && !p.collected}
+                            onChange={(e) =>
+                              updatePaymentDirect(p.id, {
+                                collected: false,
+                                partial: e.target.checked,
+                                collectedAmount: e.target.checked
+                                  ? p.collectedAmount
+                                  : 0,
+                              })
+                            }
+                            className="w-4 h-4 rounded border-gray-300 accent-blue-600"
+                          />
+                          Parziale
+                        </label>
+                        {p.partial && !p.collected && (
+                          <input
+                            type="number"
+                            value={p.collectedAmount ?? ""}
+                            placeholder="Importo incassato"
+                            onChange={(e) =>
+                              updatePaymentDirect(p.id, {
+                                collectedAmount: parseFloat(
+                                  e.target.value || "0"
+                                ),
+                              })
+                            }
+                            className="border rounded p-2 text-sm w-full"
+                          />
+                        )}
+                        {!p.collected && !p.partial && (
+                          <div className="text-gray-500 italic">
+                            ❌ Non incassato
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
+
+            {payments.length > 0 && renderSummary()}
           </div>
         )}
       </CardContent>

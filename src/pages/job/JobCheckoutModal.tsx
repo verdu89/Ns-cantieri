@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import type { Job, Payment } from "@/types";
 import { supabase } from "@/supabaseClient";
 import { documentAPI } from "@/api/documentAPI";
-import { jobAPI } from "@/api/jobs"; // 👈 import aggiunto
+import { jobAPI } from "@/api/jobs";
 import { toast } from "react-hot-toast";
+import { toLocalISODate, toDbDate, formatDateTime } from "@/utils/date";
 
 /* ===================== Helpers ===================== */
 
@@ -16,7 +17,7 @@ async function uploadFineLavoro(
   checkoutIndex: number
 ) {
   const BUCKET = "order-files";
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalISODate(new Date());
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -55,12 +56,15 @@ async function addCheckoutEvent(
   stato: string,
   job: Job,
   payments: Payment[],
-  finalConclusion: string
+  finalConclusion: string,
+  requestReview: "si" | "no"
 ) {
   const report = `--- CHECKOUT REPORT ---
-Data: ${new Date().toLocaleString("it-IT", { timeZone: "Europe/Rome" })}
+Data: ${formatDateTime(new Date())}
 Esito: ${stato.toUpperCase()}
 Tecnici: ${job.team?.map((t) => t.name).join(", ") || "-"}
+Recensione richiesta: ${requestReview === "si" ? "SÌ" : "NO"}
+
 
 💰 Pagamenti:
 ${
@@ -88,11 +92,12 @@ ${job.notes || "-"}
 
 Note finali:
 ${finalConclusion || "-"}
+
 ------------------------------`;
 
   const { error } = await supabase.from("job_events").insert({
     job_id: jobId,
-    date: new Date().toISOString(),
+    date: toDbDate(new Date()),
     type:
       stato === "completato"
         ? "check_out_completato"
@@ -105,7 +110,7 @@ ${finalConclusion || "-"}
 
 /* ===================== Component ===================== */
 export default function JobCheckoutModal({
-  job: initialJob, // 👈 lo rinominiamo perché lo ricarichiamo
+  job: initialJob,
   payments,
   ultimato,
   setUltimato,
@@ -132,6 +137,7 @@ export default function JobCheckoutModal({
   const [files, setFiles] = useState<File[]>([]);
   const [completed, setCompleted] = useState(false);
   const [job, setJob] = useState<Job>(initialJob);
+  const [requestReview, setRequestReview] = useState<"si" | "no">("no");
 
   // 🔹 quando apro il modal, ricarico il job completo con team
   useEffect(() => {
@@ -174,21 +180,61 @@ export default function JobCheckoutModal({
 
     setCheckingOut(true);
     try {
-      // 1) Upload allegati con indice checkout (con toast descrittivi)
+      // 1) Upload allegati con indice checkout
       if (files.length > 0) {
         await uploadFineLavoro(job.id, files, currentUser.id, checkoutIndex);
       }
 
       // 2) Salva evento checkout con report
-      await addCheckoutEvent(job.id, stato, job, payments, finalConclusion);
+      await addCheckoutEvent(
+        job.id,
+        stato,
+        job,
+        payments,
+        finalConclusion,
+        requestReview
+      );
 
-      // 3) Aggiorna stato del job e azzera le note correnti
+      // 3) Aggiorna stato del job
       await supabase
         .from("jobs")
         .update({ status: stato, notes: "" })
         .eq("id", job.id);
 
-      // 4) Refresh UI
+      // 4) Se completato e recensione richiesta = sì → invia richiesta
+      if (stato === "completato" && requestReview === "si") {
+        if (!job.customer?.name || !job.customer?.email) {
+          toast.error(
+            "⚠️ Nome o email cliente mancanti, impossibile inviare richiesta"
+          );
+        } else {
+          console.log("Invio a add-review-request:", {
+            jobId: job.id,
+            customerName: job.customer.name,
+            customerEmail: job.customer.email,
+          });
+
+          const { error } = await supabase.functions.invoke(
+            "add-review-request",
+            {
+              body: {
+                customerName: job.customer.name,
+                customerEmail: job.customer.email,
+                completed: stato === "completato",
+              },
+            }
+          );
+
+          if (error) {
+            console.error("Errore add-review-request:", error);
+            toast.error("❌ Errore invio richiesta recensione");
+          } else {
+            toast.success("📩 Richiesta recensione inviata al cliente");
+          }
+        }
+      }
+
+      // 5) Refresh UI
       await loadData?.();
       setCompleted(true);
       toast.success("✅ Checkout effettuato con successo!");
@@ -202,10 +248,12 @@ export default function JobCheckoutModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-lg max-w-3xl mx-auto w-full p-6 space-y-6 overflow-y-auto max-h-[95vh]">
+      <div className="bg-white rounded-2xl shadow-lg max-w-lg sm:max-w-3xl mx-auto w-full p-6 space-y-6 overflow-y-auto max-h-[95vh]">
         {!completed ? (
           <>
-            <h2 className="text-xl font-semibold">Checkout intervento</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">
+              Checkout intervento
+            </h2>
 
             {/* Cliente & Location */}
             <div className="border p-3 rounded-md bg-gray-50 text-sm">
@@ -290,8 +338,8 @@ export default function JobCheckoutModal({
             {/* Allegati */}
             <div>
               <h3 className="font-medium mb-2">📎 Allegati fine lavoro</h3>
-              <div className="flex gap-2 mb-3">
-                <label className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg text-center cursor-pointer hover:bg-blue-700">
+              <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                <label className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg text-center cursor-pointer hover:bg-blue-700">
                   📷 Scatta foto
                   <input
                     type="file"
@@ -301,7 +349,7 @@ export default function JobCheckoutModal({
                     className="hidden"
                   />
                 </label>
-                <label className="w-full sm:w-auto px-4 py-2 bg-gray-100 rounded-lg text-center cursor-pointer hover:bg-gray-200">
+                <label className="flex-1 sm:flex-none px-4 py-2 bg-gray-100 rounded-lg text-center cursor-pointer hover:bg-gray-200">
                   📎 Allega file
                   <input
                     type="file"
@@ -321,19 +369,19 @@ export default function JobCheckoutModal({
                         key={f.name}
                         className="flex justify-between items-center border p-2 rounded-md bg-gray-50"
                       >
-                        <div>
-                          {`fine_lavoro_${checkoutIndex}_${
-                            new Date().toISOString().split("T")[0]
-                          }.${ext}`}
+                        <div className="truncate max-w-[70%]">
+                          {`fine_lavoro_${checkoutIndex}_${toLocalISODate(
+                            new Date()
+                          )}.${ext}`}
                           <span className="ml-2 text-xs text-gray-500">
                             {(f.size / 1024 / 1024).toFixed(2)} MB
                           </span>
                         </div>
                         <Button
                           onClick={() => removeFile(f.name)}
-                          className="w-full sm:w-auto px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs"
+                          className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs"
                         >
-                          🗑️ Rimuovi
+                          🗑️
                         </Button>
                       </li>
                     );
@@ -376,6 +424,37 @@ export default function JobCheckoutModal({
                 Da completare
               </label>
             </div>
+
+            {/* Richiesta recensione: appare solo se esito = completato */}
+            {ultimato === "si" && (
+              <div className="mt-3">
+                <h3 className="font-medium mb-2">
+                  Vuoi chiedere la recensione al cliente?
+                </h3>
+                <div className="flex flex-col gap-2 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      value="si"
+                      checked={requestReview === "si"}
+                      onChange={() => setRequestReview("si")}
+                      className="accent-blue-600"
+                    />
+                    Sì
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      value="no"
+                      checked={requestReview === "no"}
+                      onChange={() => setRequestReview("no")}
+                      className="accent-blue-600"
+                    />
+                    No
+                  </label>
+                </div>
+              </div>
+            )}
 
             {/* Note finali */}
             <div>

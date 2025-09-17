@@ -12,7 +12,7 @@ interface JobDocumentsProps {
   setDocs: (v: Documento[]) => void;
   currentUserId: string;
   jobId: string;
-  canEdit: boolean;
+  canEdit?: boolean; // 👈 reso opzionale, default false
 }
 
 export default function JobDocuments({
@@ -21,7 +21,7 @@ export default function JobDocuments({
   setDocs,
   currentUserId,
   jobId,
-  canEdit,
+  canEdit = false,
 }: JobDocumentsProps) {
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -37,6 +37,7 @@ export default function JobDocuments({
 
   // Upload multiplo
   const handleUploadDocs = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canEdit) return; // 🔒 blocco in sola lettura
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -78,6 +79,7 @@ export default function JobDocuments({
 
   // Eliminazione documento
   const handleDeleteDoc = async (doc: Documento) => {
+    if (!canEdit) return; // 🔒 blocco in sola lettura
     setDeletingId(doc.id);
     try {
       const u = new URL(doc.fileUrl);
@@ -228,7 +230,7 @@ export default function JobDocuments({
       </Card>
 
       {/* Modale conferma eliminazione */}
-      {confirmDelete && (
+      {confirmDelete && canEdit && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-md w-96 space-y-4">
             <h2 className="text-lg font-semibold">Conferma eliminazione</h2>

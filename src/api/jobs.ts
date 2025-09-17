@@ -15,14 +15,12 @@ function mapTeam(workerRows: any[]): Worker[] {
   return (workerRows || []).map((w) => ({
     id: w.id,
     name: w.name,
-    phone: w.phone ?? undefined,   // se vuoi aggiungere anche il telefono
-    userId: w.user_id ?? w.userId, // 👈 prende il valore dal DB o già mappato
+    phone: w.phone ?? undefined,
+    userId: w.user_id ?? w.userId,
   }));
 }
 
-
 function baseSelect() {
-  // tutti i campi aliasati in camelCase
   return `
     id,
     jobOrderId:job_order_id,
@@ -61,7 +59,8 @@ function mapBase(j: any): Job {
 async function loadPayments(jobId: string): Promise<Payment[]> {
   const { data, error } = await supabase
     .from("payments")
-    .select(`
+    .select(
+      `
       id,
       jobId:job_id,
       label,
@@ -69,7 +68,8 @@ async function loadPayments(jobId: string): Promise<Payment[]> {
       collected,
       partial,
       collectedAmount:collected_amount
-    `)
+    `
+    )
     .eq("job_id", jobId);
 
   if (error) throw error;
@@ -82,37 +82,29 @@ async function loadPayments(jobId: string): Promise<Payment[]> {
     partial: p.partial ?? false,
     collectedAmount: p.collectedAmount ?? null,
     jobId: p.jobId,
-    createdAt: null, // non esiste nel DB
+    createdAt: null,
   }));
 }
 
-/* ===================== Auto update stati ===================== */
-
-async function autoUpdateStatus(job: Job): Promise<Job> {
+/* ===================== Stato centralizzato (solo visuale) ===================== */
+function autoUpdateStatus(job: Job): Job {
   if (!job.plannedDate) return job;
 
   const now = new Date();
   const planned = new Date(job.plannedDate);
-  let newStatus: Job["status"] | null = null;
 
-  // se assegnato ed è arrivata l'ora → in_corso
+  // Caso 1: assegnato → in_corso quando è arrivata l’ora
   if (job.status === "assegnato" && planned <= now) {
-    newStatus = "in_corso";
+    return { ...job, status: "in_corso" };
   }
 
-  // se in_corso ed è passato → in_ritardo
-  if (job.status === "in_corso" && planned < now) {
-    newStatus = "in_ritardo";
-  }
+  // Caso 2: in_corso → in_ritardo dopo le 17 dello stesso giorno
+  if (job.status === "in_corso") {
+    const cutoff = new Date(planned);
+    cutoff.setHours(17, 0, 0, 0);
 
-  if (newStatus) {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: newStatus })
-      .eq("id", job.id);
-
-    if (!error) {
-      job.status = newStatus;
+    if (now > cutoff) {
+      return { ...job, status: "in_ritardo" };
     }
   }
 
@@ -134,10 +126,10 @@ export const jobAPI = {
 
     for (const j of jobs) {
       j.payments = await loadPayments(j.id);
-      await autoUpdateStatus(j);
     }
 
-    return jobs;
+    // 🔹 stato calcolato a runtime
+    return jobs.map(autoUpdateStatus);
   },
 
   async listByOrder(orderId: string): Promise<Job[]> {
@@ -153,10 +145,9 @@ export const jobAPI = {
 
     for (const j of jobs) {
       j.payments = await loadPayments(j.id);
-      await autoUpdateStatus(j);
     }
 
-    return jobs;
+    return jobs.map(autoUpdateStatus);
   },
 
   async listAssigned(userId: string): Promise<Job[]> {
@@ -172,10 +163,9 @@ export const jobAPI = {
 
     for (const j of jobs) {
       j.payments = await loadPayments(j.id);
-      await autoUpdateStatus(j);
     }
 
-    return jobs;
+    return jobs.map(autoUpdateStatus);
   },
 
   async getById(id: string): Promise<Job | undefined> {
@@ -228,14 +218,16 @@ export const jobAPI = {
     // docs
     const { data: docs, error: docsErr } = await supabase
       .from("job_document")
-      .select(`
+      .select(
+        `
         id,
         jobId:job_id,
         fileName:file_name,
         fileUrl:file_url,
         uploadedBy:uploaded_by,
         createdAt:created_at
-      `)
+      `
+      )
       .eq("job_id", id)
       .order("created_at", { ascending: false });
 
@@ -256,13 +248,15 @@ export const jobAPI = {
     // events
     const { data: events, error: evErr } = await supabase
       .from("job_events")
-      .select(`
+      .select(
+        `
         id,
         jobId:job_id,
         date,
         type,
         notes
-      `)
+      `
+      )
       .eq("job_id", id)
       .order("date", { ascending: true });
 
@@ -278,7 +272,8 @@ export const jobAPI = {
       createdBy: "",
     }));
 
-    const updatedJob = await autoUpdateStatus({
+    // 🔹 ritorna job con stato calcolato a runtime
+    return autoUpdateStatus({
       ...base,
       customer: customer ?? base.customer,
       team,
@@ -286,12 +281,13 @@ export const jobAPI = {
       docs: mappedDocs,
       events: mappedEvents,
     });
-
-    return updatedJob;
   },
 
   async create(
-    payload: Omit<Job, "id" | "events" | "payments" | "docs" | "team" | "customer">
+    payload: Omit<
+      Job,
+      "id" | "events" | "payments" | "docs" | "team" | "customer"
+    >
   ): Promise<Job> {
     const insertPayload: any = {
       job_order_id: payload.jobOrderId,
@@ -309,7 +305,8 @@ export const jobAPI = {
     if (payload.notesBackoffice !== undefined) {
       insertPayload.notes_backoffice = payload.notesBackoffice;
     }
-    if (payload.location !== undefined) insertPayload.location = payload.location;
+    if (payload.location !== undefined)
+      insertPayload.location = payload.location;
 
     const { data, error } = await supabase
       .from("jobs")

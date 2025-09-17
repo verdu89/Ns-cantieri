@@ -17,40 +17,24 @@ import type {
   Worker,
 } from "../../types";
 import { formatDocumento } from "../../utils/documenti";
-import { STATUS_CONFIG } from "@/config/statusConfig";
+import { STATUS_CONFIG, getEffectiveStatus } from "@/config/statusConfig";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import toast from "react-hot-toast";
+import { formatDateTime, toDbDate } from "@/utils/date";
+
+const TYPE_LABELS: Record<Job["title"], string> = {
+  consegna: "📦 Consegna",
+  montaggio: "🔧 Montaggio",
+  consegna_montaggio: "🚚🔧 Consegna + Montaggio",
+  assistenza: "🛠️ Assistenza",
+  altro: "📝 Altro",
+};
 
 // 🔹 Per creare un job
 type JobCreate = Omit<
   Job,
   "id" | "events" | "customer" | "team" | "payments" | "docs"
 >;
-
-/** ========= Stato visuale (NON scrive su DB) ========= */
-function getEffectiveStatus(
-  job: Pick<Job, "status" | "plannedDate" | "assignedWorkers">
-): Job["status"] {
-  if (job.status === "in_ritardo") return "in_ritardo";
-  if (["completato", "da_completare", "annullato"].includes(job.status)) {
-    return job.status as Job["status"];
-  }
-  const hasTeam =
-    Array.isArray(job.assignedWorkers) && job.assignedWorkers.length > 0;
-  if (!job.plannedDate || !hasTeam) return "in_attesa_programmazione";
-
-  const planned = new Date(job.plannedDate);
-  const now = new Date();
-
-  if (now < planned) return "assegnato";
-  if (now >= planned) {
-    if (job.status === "in_corso" && planned.getTime() < now.getTime()) {
-      return "in_ritardo";
-    }
-    return "in_corso";
-  }
-  return job.status;
-}
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -134,7 +118,7 @@ export default function OrderDetail() {
     try {
       if (editingId) {
         const payload: Partial<Job> = {
-          title: formData.title,
+          title: formData.title as Job["title"],
           plannedDate: (formData.plannedDate as string | null) ?? null,
           assignedWorkers: formData.assignedWorkers ?? [],
           notes: formData.notes ?? "",
@@ -152,11 +136,9 @@ export default function OrderDetail() {
       } else {
         const newJobPayload: JobCreate = {
           jobOrderId: order.id,
-          createdAt: new Date().toISOString(),
-          plannedDate: (formData.plannedDate as string) || null,
-          title: formData.title!,
+          createdAt: toDbDate(new Date()), // 🔄 sostituito
+          title: formData.title as Job["title"],
           notes: formData.notes ?? "",
-          assignedWorkers: formData.assignedWorkers ?? [],
           status: "in_attesa_programmazione",
           files: [],
           location: order.location ?? {},
@@ -502,7 +484,7 @@ export default function OrderDetail() {
         {/* Mobile */}
         <div className="space-y-4 md:hidden">
           {sortedJobs.map((j) => {
-            const st = getEffectiveStatus(j);
+            const st = getEffectiveStatus(j.status, j.plannedDate);
             const cfg = STATUS_CONFIG[st];
             const isLateRow = j.plannedDate && st === "in_ritardo";
 
@@ -514,12 +496,9 @@ export default function OrderDetail() {
                 }`}
               >
                 <div className="text-sm text-gray-500">
-                  📅{" "}
-                  {j.plannedDate
-                    ? new Date(j.plannedDate).toLocaleString("it-IT")
-                    : "-"}
+                  📅 {j.plannedDate ? formatDateTime(j.plannedDate) : "-"}
                 </div>
-                <div className="font-semibold mt-1">{j.title}</div>
+                <div className="font-semibold mt-1">{TYPE_LABELS[j.title]}</div>
                 <div className="text-sm mt-1">
                   👷{" "}
                   {j.assignedWorkers?.length
@@ -580,7 +559,7 @@ export default function OrderDetail() {
             </thead>
             <tbody>
               {sortedJobs.map((j) => {
-                const st = getEffectiveStatus(j);
+                const st = getEffectiveStatus(j.status, j.plannedDate);
                 const cfg = STATUS_CONFIG[st];
                 const isLateRow = j.plannedDate && st === "in_ritardo";
 
@@ -590,11 +569,9 @@ export default function OrderDetail() {
                     className={`border-t ${isLateRow ? "bg-red-50" : ""}`}
                   >
                     <td className="p-2">
-                      {j.plannedDate
-                        ? new Date(j.plannedDate).toLocaleString("it-IT")
-                        : "-"}
+                      {j.plannedDate ? formatDateTime(j.plannedDate) : "-"}
                     </td>
-                    <td className="p-2">{j.title}</td>
+                    <td className="p-2">{TYPE_LABELS[j.title]}</td>
                     <td className="p-2">
                       {j.assignedWorkers?.length
                         ? j.assignedWorkers
@@ -652,51 +629,26 @@ export default function OrderDetail() {
               {editingId ? "✏️ Modifica Intervento" : "➕ Nuovo Intervento"}
             </h2>
 
-            <input
-              type="text"
-              name="title"
-              placeholder="Tipologia intervento *"
+            <select
+              name="type"
               value={formData.title ?? ""}
               onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
+                setFormData({
+                  ...formData,
+                  title: e.target.value as Job["title"],
+                })
               }
               className="w-full p-2 border rounded-lg mb-2"
-            />
-
-            <label className="block font-semibold mb-1">
-              Data e ora programmate
-            </label>
-            <input
-              type="datetime-local"
-              name="plannedDate"
-              value={(formData.plannedDate as string) ?? ""}
-              onChange={(e) =>
-                setFormData({ ...formData, plannedDate: e.target.value })
-              }
-              className="w-full p-2 border rounded-lg mb-2"
-            />
-
-            <label className="block font-semibold mb-1">Assegna squadra</label>
-            <div className="space-y-1 mb-2 max-h-48 overflow-auto pr-1">
-              {workers.map((w) => (
-                <label key={w.id} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.assignedWorkers?.includes(w.id) ?? false}
-                    onChange={(e) => {
-                      const current = formData.assignedWorkers ?? [];
-                      setFormData({
-                        ...formData,
-                        assignedWorkers: e.target.checked
-                          ? [...current, w.id]
-                          : current.filter((id) => id !== w.id),
-                      });
-                    }}
-                  />
-                  <span>{w.name}</span>
-                </label>
-              ))}
-            </div>
+            >
+              <option value="">Seleziona tipo *</option>
+              <option value="consegna">📦 Consegna</option>
+              <option value="montaggio">🔧 Montaggio</option>
+              <option value="consegna_montaggio">
+                🚚🔧 Consegna + Montaggio
+              </option>
+              <option value="assistenza">🛠️ Assistenza</option>
+              <option value="altro">📝 Altro</option>
+            </select>
 
             <textarea
               name="notes"
