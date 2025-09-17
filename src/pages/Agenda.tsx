@@ -1,3 +1,4 @@
+// src/pages/JobAgenda.tsx
 import { Button } from "@/components/ui/Button";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -12,88 +13,19 @@ import { jobAPI } from "@/api/jobs";
 import { workerAPI } from "@/api/workers";
 import type { Job, User } from "@/types";
 import { useAuth } from "@/context/AuthContext";
-import { STATUS_CONFIG } from "@/config/statusConfig";
+import { STATUS_CONFIG, getEffectiveStatus } from "@/config/statusConfig";
 import { toast } from "react-hot-toast";
+import {
+  addDays,
+  stripTime,
+  getMonday,
+  toLocalISODate,
+  formatWeekRange,
+  formatDayHeader,
+  formatTime,
+} from "@/utils/date";
 
 const STATUSES = Object.keys(STATUS_CONFIG) as Job["status"][];
-
-/* ========= Stato effettivo ========= */
-function getEffectiveStatus(job: Job): Job["status"] {
-  if (!job.plannedDate) return job.status;
-
-  const now = new Date();
-  const planned = new Date(job.plannedDate);
-
-  if (["completato", "da_completare", "annullato"].includes(job.status)) {
-    return job.status;
-  }
-
-  if (job.status === "assegnato" && planned <= now) {
-    return "in_corso";
-  }
-
-  if (job.status === "in_corso") {
-    const endOfDay = new Date(planned);
-    endOfDay.setHours(17, 0, 0, 0);
-    if (now > endOfDay) return "in_ritardo";
-  }
-
-  return job.status;
-}
-
-/* ========= Utils ========= */
-function getMonday(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1) - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-function addDays(d: Date, n: number) {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
-}
-function stripTime(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function toLocalISODate(d: Date) {
-  return d
-    .toLocaleDateString("it-IT", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
-    .split("/")
-    .reverse()
-    .join("-");
-}
-function formatWeekRange(start: Date) {
-  const end = addDays(start, 4);
-  const fmt = (dt: Date) =>
-    dt.toLocaleDateString("it-IT", {
-      day: "2-digit",
-      month: "2-digit",
-    });
-  return `Settimana: ${fmt(start)} → ${fmt(end)}`;
-}
-function formatDayHeader(d: Date) {
-  return d.toLocaleDateString("it-IT", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-  });
-}
-function formatTime(iso?: string | null) {
-  if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("it-IT", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 /* ========= Component ========= */
 export default function Agenda() {
@@ -123,9 +55,10 @@ export default function Agenda() {
         await workerAPI.list();
       }
 
+      // 🔹 aggiorno in tempo reale lo stato effettivo
       const syncedJobs: Job[] = [];
       for (const job of j) {
-        const effectiveStatus = getEffectiveStatus(job);
+        const effectiveStatus = getEffectiveStatus(job.status, job.plannedDate);
         if (effectiveStatus !== job.status) {
           try {
             await jobAPI.update(job.id, { status: effectiveStatus });
@@ -196,7 +129,8 @@ export default function Agenda() {
     STATUSES.forEach((s) => (counts[s] = 0));
     for (const [, arr] of jobsByDay) {
       arr.forEach((j) => {
-        counts[j.status] = (counts[j.status] ?? 0) + 1;
+        const effective = getEffectiveStatus(j.status, j.plannedDate);
+        counts[effective] = (counts[effective] ?? 0) + 1;
       });
     }
     return counts;
@@ -354,7 +288,8 @@ function DayCard({
               ? `/backoffice/jobs/${encodeURIComponent(j.id)}`
               : `/jobs/${encodeURIComponent(j.id)}`;
 
-          const cfg = STATUS_CONFIG[j.status];
+          const effective = getEffectiveStatus(j.status, j.plannedDate);
+          const cfg = STATUS_CONFIG[effective];
 
           return (
             <Link
@@ -372,7 +307,7 @@ function DayCard({
                 <span
                   className={`text-[11px] px-2 py-0.5 rounded-full border whitespace-nowrap ${cfg?.color}`}
                 >
-                  {cfg?.label ?? j.status}
+                  {cfg?.label ?? effective}
                 </span>
               </div>
               <div className="mt-0.5 text-xs text-gray-600 flex flex-wrap items-center gap-2">

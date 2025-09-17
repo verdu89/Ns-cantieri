@@ -1,47 +1,19 @@
-import { Button } from "@/components/ui/Button";
 // src/pages/MyJobs.tsx
+import { Button } from "@/components/ui/Button";
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { jobAPI } from "../api/jobs";
 import { Loader2, ArrowDownUp } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import type { Job } from "../types";
-import { STATUS_CONFIG } from "@/config/statusConfig";
-
-type EffectiveStatus = Job["status"] | "in_ritardo";
-
-// 🔹 Util per data italiana
-function toLocalDateKey(d: Date) {
-  return (
-    d.getFullYear() +
-    "-" +
-    String(d.getMonth() + 1).padStart(2, "0") +
-    "-" +
-    String(d.getDate()).padStart(2, "0")
-  );
-}
-
-function normalizeStatus(s: string): Job["status"] {
-  return s.replace(/\s+/g, "_") as Job["status"];
-}
-
-function getEffectiveStatus(job: Job): EffectiveStatus {
-  const current = normalizeStatus(job.status);
-  if (
-    (current === "in_corso" || current === "assegnato") &&
-    job.plannedDate &&
-    new Date(job.plannedDate).getTime() < Date.now()
-  ) {
-    return "in_ritardo";
-  }
-  return current;
-}
+import { STATUS_CONFIG, getEffectiveStatus } from "@/config/statusConfig";
+import { toTimestamp, formatDateTime, toLocalISODate } from "@/utils/date";
 
 export default function MyJobs() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<EffectiveStatus | "all">(
+  const [filterStatus, setFilterStatus] = useState<Job["status"] | "all">(
     "all"
   );
   const [search, setSearch] = useState("");
@@ -60,12 +32,7 @@ export default function MyJobs() {
           all = await jobAPI.list();
         }
 
-        setJobs(
-          all.map((j) => ({
-            ...j,
-            status: normalizeStatus(j.status),
-          }))
-        );
+        setJobs(all);
       } catch (e) {
         console.error("Errore caricamento lavori:", e);
         setJobs([]);
@@ -79,7 +46,7 @@ export default function MyJobs() {
   const filteredJobs = useMemo(() => {
     let res = jobs.map((j) => ({
       ...j,
-      effectiveStatus: getEffectiveStatus(j),
+      effectiveStatus: getEffectiveStatus(j.status, j.plannedDate),
     }));
 
     if (filterStatus !== "all") {
@@ -94,12 +61,11 @@ export default function MyJobs() {
 
     if (dateFilter !== "all") {
       const now = new Date();
-      const todayKey = toLocalDateKey(now);
+      const todayKey = toLocalISODate(now);
 
       res = res.filter((j) => {
         if (!j.plannedDate) return false;
-        const d = new Date(j.plannedDate);
-        const dKey = toLocalDateKey(d);
+        const dKey = toLocalISODate(new Date(j.plannedDate));
 
         if (dateFilter === "today") {
           return dKey === todayKey;
@@ -109,7 +75,10 @@ export default function MyJobs() {
           start.setDate(now.getDate() - now.getDay()); // domenica
           const end = new Date(start);
           end.setDate(start.getDate() + 7);
-          return d >= start && d < end;
+          return (
+            toTimestamp(j.plannedDate) >= start.getTime() &&
+            toTimestamp(j.plannedDate) < end.getTime()
+          );
         }
         return true;
       });
@@ -117,12 +86,8 @@ export default function MyJobs() {
 
     // 🔹 Sort per data
     res.sort((a, b) => {
-      const aTime = a.plannedDate
-        ? new Date(a.plannedDate).getTime()
-        : Infinity;
-      const bTime = b.plannedDate
-        ? new Date(b.plannedDate).getTime()
-        : Infinity;
+      const aTime = toTimestamp(a.plannedDate);
+      const bTime = toTimestamp(b.plannedDate);
       return sortOrder === "asc" ? aTime - bTime : bTime - aTime;
     });
 
@@ -150,7 +115,7 @@ export default function MyJobs() {
           <select
             value={filterStatus}
             onChange={(e) =>
-              setFilterStatus(e.target.value as EffectiveStatus | "all")
+              setFilterStatus(e.target.value as Job["status"] | "all")
             }
             className="border rounded-lg px-3 py-2 text-sm"
           >
@@ -164,7 +129,7 @@ export default function MyJobs() {
                 "da_completare",
                 "completato",
                 "annullato",
-              ] as EffectiveStatus[]
+              ] as Job["status"][]
             ).map((key) => {
               const cfg = STATUS_CONFIG[key];
               return (
@@ -268,16 +233,7 @@ export default function MyJobs() {
                   </span>
                 </div>
                 <div className="text-sm text-gray-600 mt-1">
-                  📅{" "}
-                  {job.plannedDate
-                    ? new Date(job.plannedDate).toLocaleString("it-IT", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "Non programmato"}
+                  📅 {formatDateTime(job.plannedDate) ?? "Non programmato"}
                 </div>
                 <div className="text-sm text-gray-600">
                   📍 {job.location?.address ?? "—"}

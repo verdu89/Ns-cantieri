@@ -1,3 +1,4 @@
+// src/pages/backoffice/ReportPage.tsx
 import { Button } from "@/components/ui/Button";
 import { useEffect, useState } from "react";
 import { jobOrderAPI } from "../../api/jobOrders";
@@ -18,18 +19,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-function startOfWeek(date: Date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-}
-
-function endOfWeek(date: Date) {
-  const d = startOfWeek(date);
-  d.setDate(d.getDate() + 6);
-  return d;
-}
+import { getMonday, addDays, toTimestamp, formatDate } from "@/utils/date";
 
 export default function ReportPage() {
   const [orders, setOrders] = useState<JobOrder[]>([]);
@@ -47,18 +37,16 @@ export default function ReportPage() {
 
   // Calcolo settimana
   const now = new Date();
-  const currentWeekStart = startOfWeek(now);
-  const currentWeek = new Date(
-    currentWeekStart.getTime() + weekOffset * 7 * 24 * 60 * 60 * 1000
-  );
-  const weekStart = startOfWeek(currentWeek);
-  const weekEnd = endOfWeek(currentWeek);
+  const currentWeekStart = getMonday(now);
+  const currentWeek = addDays(currentWeekStart, weekOffset * 7);
+  const weekStart = getMonday(currentWeek);
+  const weekEnd = addDays(weekStart, 6);
 
   // Filtri
   const jobsThisWeek = jobs.filter((j) => {
     if (!j.plannedDate) return false;
-    const d = new Date(j.plannedDate);
-    return d >= weekStart && d <= weekEnd;
+    const t = toTimestamp(j.plannedDate);
+    return t >= weekStart.getTime() && t <= weekEnd.getTime();
   });
 
   const ordersThisWeek = orders.filter((o) =>
@@ -129,8 +117,7 @@ export default function ReportPage() {
             ◀️
           </Button>
           <div className="font-medium">
-            {weekStart.toLocaleDateString("it-IT")} –{" "}
-            {weekEnd.toLocaleDateString("it-IT")}
+            {formatDate(weekStart)} – {formatDate(weekEnd)}
           </div>
           <Button
             onClick={() => setWeekOffset(weekOffset + 1)}
@@ -185,7 +172,7 @@ export default function ReportPage() {
           <ResponsiveContainer width="100%" height={250}>
             <BarChart
               data={jobsByWorker}
-              layout="vertical" // orizzontale, più leggibile su mobile
+              layout="vertical"
               margin={{ left: 50 }}
             >
               <XAxis type="number" />

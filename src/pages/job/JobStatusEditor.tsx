@@ -1,3 +1,4 @@
+// src/pages/job/JobStatusEditor.tsx
 import { Button } from "@/components/ui/Button";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -5,9 +6,11 @@ import type { Job, Worker } from "@/types";
 import { supabase } from "@/supabaseClient";
 import { STATUS_CONFIG } from "@/config/statusConfig";
 import { toast } from "react-hot-toast";
+import { toDbDate, toInputDateTime } from "@/utils/date";
 
 interface JobStatusEditorProps {
   job: Job;
+  setJob: (job: Job) => void;
   workers: Worker[];
   assignedWorkers: string[];
   setAssignedWorkers: (ids: string[]) => void;
@@ -19,6 +22,7 @@ interface JobStatusEditorProps {
 
 export default function JobStatusEditor({
   job,
+  setJob,
   workers,
   assignedWorkers,
   setAssignedWorkers,
@@ -41,8 +45,9 @@ export default function JobStatusEditor({
     }
   }, [showAssignForm, showOverride]);
 
+  // 🔹 usa direttamente lo stato reale del job (senza ricalcolare)
   const cfg = STATUS_CONFIG[status] ?? {
-    badge: "bg-gray-200 text-gray-700",
+    color: "bg-gray-200 text-gray-700",
     label: "Stato sconosciuto",
     icon: "❓",
   };
@@ -58,17 +63,34 @@ export default function JobStatusEditor({
   ) => {
     try {
       setSaving(true);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("jobs")
         .update(updates)
-        .eq("id", job.id);
+        .eq("id", job.id)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      if (updates.status) setStatus(updates.status);
-      if (updates.planned_date) setPlannedLocal(updates.planned_date);
-      if (updates.assigned_workers)
-        setAssignedWorkers(updates.assigned_workers);
+      // 🔹 aggiorna subito il job completo dal DB
+      if (data) {
+        setJob(data);
+      }
+
+      // 🔹 aggiorna stati locali per consistenza UI
+      if (updates.status !== undefined) {
+        setStatus(updates.status);
+      }
+
+      if (updates.planned_date !== undefined) {
+        setPlannedLocal(
+          updates.planned_date ? toInputDateTime(updates.planned_date) : ""
+        );
+      }
+
+      if (updates.assigned_workers !== undefined) {
+        setAssignedWorkers(updates.assigned_workers ?? []);
+      }
 
       toast.success(successMsg);
     } catch (err: any) {
@@ -88,7 +110,7 @@ export default function JobStatusEditor({
     handleSave(
       {
         status: "assegnato",
-        planned_date: plannedLocal ? plannedLocal + ":00" : null,
+        planned_date: toDbDate(plannedLocal),
         assigned_workers: assignedWorkers,
       },
       "Lavoro assegnato con successo"
@@ -98,7 +120,19 @@ export default function JobStatusEditor({
   };
 
   const handleSaveOverride = () => {
-    handleSave({ status: selectedStatus }, "Stato aggiornato con successo");
+    const keepPlanning: Job["status"][] = [
+      "assegnato",
+      "in_corso",
+      "in_ritardo",
+    ];
+    const updates: Record<string, any> = { status: selectedStatus };
+
+    if (!keepPlanning.includes(selectedStatus)) {
+      updates.planned_date = null;
+      updates.assigned_workers = [];
+    }
+
+    handleSave(updates, "Stato aggiornato con successo");
     setShowOverride(false);
   };
 

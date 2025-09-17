@@ -1,5 +1,5 @@
+// src/pages/backoffice/Home.tsx
 import { Button } from "@/components/ui/Button";
-// src/pages/backoffice/JobsList.tsx
 import { useEffect, useMemo, useState } from "react";
 import {
   Loader2,
@@ -19,29 +19,12 @@ import { customerAPI } from "../../api/customers";
 import { workerAPI } from "../../api/workers";
 
 import type { Job, JobOrder, Customer, Worker } from "../../types";
-import { STATUS_CONFIG } from "@/config/statusConfig";
+import { STATUS_CONFIG, getEffectiveStatus } from "@/config/statusConfig";
+import { formatDateTime, toTimestamp } from "@/utils/date";
 
 const JOB_BASE_PATH = "/backoffice/jobs";
 
-type EffectiveStatus = Job["status"] | "in_ritardo";
-
-function normalizeStatus(s: string): Job["status"] {
-  return s.replace(/\s+/g, "_") as Job["status"];
-}
-
-function getEffectiveStatus(job: Job): EffectiveStatus {
-  const current = normalizeStatus(job.status);
-  if (
-    (current === "in_corso" || current === "assegnato") &&
-    job.plannedDate &&
-    new Date(job.plannedDate).getTime() < Date.now()
-  ) {
-    return "in_ritardo";
-  }
-  return current;
-}
-
-export default function JobsList() {
+export default function Home() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [orders, setOrders] = useState<JobOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -51,7 +34,7 @@ export default function JobsList() {
 
   // Filtri
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState<EffectiveStatus | "all">("all");
+  const [status, setStatus] = useState<Job["status"] | "all">("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const navigate = useNavigate();
@@ -65,9 +48,7 @@ export default function JobsList() {
         customerAPI.list(),
         workerAPI.list(),
       ]);
-      setJobs(
-        j.map((job) => ({ ...job, status: normalizeStatus(job.status) }))
-      );
+      setJobs(j);
       setOrders(o);
       setCustomers(c);
       setWorkers(w);
@@ -105,7 +86,7 @@ export default function JobsList() {
     const ql = q.trim().toLowerCase();
     let res = jobs.map((j) => ({
       ...j,
-      effectiveStatus: getEffectiveStatus(j),
+      effectiveStatus: getEffectiveStatus(j.status, j.plannedDate),
     }));
 
     if (status !== "all") {
@@ -126,12 +107,8 @@ export default function JobsList() {
     }
 
     res.sort((a, b) => {
-      const aTime = a.plannedDate
-        ? new Date(a.plannedDate).getTime()
-        : Infinity;
-      const bTime = b.plannedDate
-        ? new Date(b.plannedDate).getTime()
-        : Infinity;
+      const aTime = toTimestamp(a.plannedDate);
+      const bTime = toTimestamp(b.plannedDate);
       return sortOrder === "asc" ? aTime - bTime : bTime - aTime;
     });
 
@@ -172,9 +149,7 @@ export default function JobsList() {
           </span>
           <select
             value={status}
-            onChange={(e) =>
-              setStatus(e.target.value as EffectiveStatus | "all")
-            }
+            onChange={(e) => setStatus(e.target.value as Job["status"] | "all")}
             className="p-2 border rounded-xl w-full pl-9"
             title="Filtra per stato"
           >
@@ -188,7 +163,7 @@ export default function JobsList() {
                 "da_completare",
                 "completato",
                 "annullato",
-              ] as EffectiveStatus[]
+              ] as Job["status"][]
             ).map((key) => {
               const cfg = STATUS_CONFIG[key];
               return (
@@ -250,9 +225,7 @@ export default function JobsList() {
 
                 <div className="mt-2 text-sm flex items-center gap-2">
                   <Calendar size={14} />{" "}
-                  {job.plannedDate
-                    ? new Date(job.plannedDate).toLocaleString("it-IT")
-                    : "—"}
+                  {formatDateTime(job.plannedDate) ?? "—"}
                 </div>
 
                 <div className="mt-2 flex items-center gap-2 text-sm text-gray-700">
@@ -307,9 +280,7 @@ export default function JobsList() {
                     <td className="px-3 py-3">{customer?.name ?? "—"}</td>
                     <td className="px-3 py-3">{order?.code ?? "—"}</td>
                     <td className="px-3 py-3">
-                      {job.plannedDate
-                        ? new Date(job.plannedDate).toLocaleString("it-IT")
-                        : "—"}
+                      {formatDateTime(job.plannedDate) ?? "—"}
                     </td>
                     <td className="px-3 py-3">
                       <span

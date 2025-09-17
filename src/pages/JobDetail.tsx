@@ -1,3 +1,4 @@
+// src/pages/JobDetail.tsx
 import { Button } from "@/components/ui/Button";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
@@ -26,6 +27,9 @@ import JobNotes from "./job/JobNotes";
 import JobCheckoutModal from "./job/JobCheckoutModal";
 import JobCheckoutReport from "./job/JobCheckoutReport";
 
+// 🔹 Utils date centralizzate
+import { toInputDateTime, toDbDate } from "@/utils/date";
+
 /* ===================== MAIN ===================== */
 export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +48,7 @@ export default function JobDetail() {
     return {
       id: (user as any)?.id || "user-unknown",
       name: String(display),
-      role: (user as any)?.role || "montatore", // Ruolo di default "montatore"
+      role: (user as any)?.role || "montatore",
     };
   }, [user]);
 
@@ -82,11 +86,11 @@ export default function JobDetail() {
       setError(null);
       setLoading(true);
 
-      // 1) Carico job e workers
       const [j, w] = await Promise.all([
         jobAPI.getById(jobId),
         workerAPI.list(),
       ]);
+
       if (!j) {
         setError("Intervento non trovato.");
         setJob(null);
@@ -94,18 +98,15 @@ export default function JobDetail() {
         return;
       }
 
+      // 🔹 NON aggiorno più lo stato automaticamente
       setJob(j);
       setAssignedWorkers(j.assignedWorkers ?? []);
-      setPlannedLocal(
-        j.plannedDate ? new Date(j.plannedDate).toISOString().slice(0, 16) : ""
-      );
+      setPlannedLocal(j.plannedDate ? toInputDateTime(j.plannedDate) : "");
       setPayments(j.payments ?? []);
 
-      // 2) ID commessa collegata
       const orderId: string | undefined =
         (j as any)?.jobOrderId || (j as any)?.orderId;
 
-      // 3) Carico docs commessa, docs job, commessa
       const [oDocs, jDocs, orderObj] = await Promise.all([
         orderId
           ? documentAPI.listByOrder(orderId)
@@ -119,7 +120,6 @@ export default function JobDetail() {
       setOrderDocs(oDocs);
       setDocs(jDocs);
 
-      // 4) Se ho la commessa, salvo note + cliente
       if (orderObj) {
         setOrder(orderObj);
         setOrderNotes(orderObj.notes ?? "");
@@ -159,11 +159,10 @@ export default function JobDetail() {
     return <div className="p-6 text-red-600">Intervento non trovato</div>;
 
   /* ========== Logica bottone checkout ========== */
-  const checkoutableStatuses = [
+  const checkoutableStatuses: Job["status"][] = [
     "assegnato",
     "in_corso",
     "in_ritardo",
-    "da_completare",
   ];
 
   const canDoCheckout =
@@ -188,13 +187,19 @@ export default function JobDetail() {
       {isBackoffice && (
         <JobStatusEditor
           job={job}
+          setJob={setJob}
           workers={workers}
           assignedWorkers={assignedWorkers}
           setAssignedWorkers={setAssignedWorkers}
           status={job.status}
           setStatus={(s) => setJob((j) => (j ? { ...j, status: s } : j))}
           plannedLocal={plannedLocal}
-          setPlannedLocal={setPlannedLocal}
+          setPlannedLocal={(val) => {
+            setPlannedLocal(val);
+            setJob((j) =>
+              j ? { ...j, plannedDate: val ? toDbDate(val) : null } : j
+            );
+          }}
         />
       )}
 
@@ -219,7 +224,7 @@ export default function JobDetail() {
         canEdit={true}
       />
 
-      {/* NOTE INTERVENTO CORRENTI */}
+      {/* NOTE INTERVENTO */}
       <JobNotes job={job} setJob={setJob} orderNotes={orderNotes} />
 
       {/* OPERATIVITÀ / CHECKOUT */}

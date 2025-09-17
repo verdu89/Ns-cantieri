@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import type { Job, Documento, JobEvent } from "@/types";
+import { formatDateTime, parseDate } from "@/utils/date";
 
 export default function JobCheckoutReport({
   job,
@@ -17,8 +18,8 @@ export default function JobCheckoutReport({
     )
     .sort(
       (a, b) =>
-        new Date(b.date || b.createdAt || "").getTime() -
-        new Date(a.date || a.createdAt || "").getTime()
+        parseDate(b.date || b.createdAt || "").getTime() -
+        parseDate(a.date || a.createdAt || "").getTime()
     );
 
   if (checkoutEvents.length === 0) return null;
@@ -34,16 +35,15 @@ export default function JobCheckoutReport({
             d.fileName.split(".").length > 1
         );
 
+        // Data evento → da campo `date` se presente, altrimenti fallback su createdAt
+        const eventDate = ev.date || ev.createdAt || null;
+        const formattedDate = eventDate ? formatDateTime(eventDate) : "-";
+
         return (
           <Card key={ev.id} className="overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-base md:text-lg">
-                📋 Checkout del{" "}
-                {(ev.notes ?? "")
-                  .split("\n")
-                  .find((line) => line.startsWith("Data:"))
-                  ?.replace("Data:", "")
-                  .trim() || "-"}
+                📋 Checkout del {formattedDate}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -82,7 +82,6 @@ export default function JobCheckoutReport({
               <div className="flex flex-col sm:flex-row justify-end pt-2">
                 <Button
                   onClick={() => {
-                    // Creiamo un iframe invisibile per gestire la stampa senza bloccare la pagina
                     const iframe = document.createElement("iframe");
                     iframe.style.position = "absolute";
                     iframe.style.width = "0";
@@ -92,7 +91,6 @@ export default function JobCheckoutReport({
 
                     const iframeDoc = iframe.contentWindow?.document;
                     if (iframeDoc) {
-                      // Prepara il contenuto per la stampa
                       iframeDoc.open();
                       iframeDoc.write(`
                         <html>
@@ -105,13 +103,14 @@ export default function JobCheckoutReport({
                           </head>
                           <body>
                             <h2>📋 Report Checkout</h2>
+                            <p><strong>Data:</strong> ${formattedDate}</p>
                             <pre>${ev.notes ?? ""}</pre>
                           </body>
                         </html>
                       `);
                       iframeDoc.close();
                       iframe.contentWindow?.print();
-                      document.body.removeChild(iframe); // Rimuoviamo l'iframe dopo la stampa
+                      document.body.removeChild(iframe);
                     }
                   }}
                   className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

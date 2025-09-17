@@ -1,10 +1,10 @@
-// JobHeader.tsx
+// src/pages/job/JobHeader.tsx
 import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import type { Job, JobOrder, Customer } from "@/types";
+import type { Job, JobOrder, Customer, JobStatus } from "@/types";
 import { STATUS_CONFIG } from "@/config/statusConfig";
+import { formatDateTime } from "@/utils/date";
 
 interface JobHeaderProps {
   job: Job;
@@ -44,21 +44,15 @@ export default function JobHeader({ job, customer, order }: JobHeaderProps) {
 
   const telHref = phone ? `tel:${phone}` : "";
 
-  const formattedPlannedDate = job?.plannedDate
-    ? new Date(job.plannedDate).toLocaleString("it-IT", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "Non programmato";
+  // 🔹 usa sempre il campo aggiornato dal DB
+  const formattedPlannedDate =
+    job?.plannedDate && job.plannedDate !== null
+      ? formatDateTime(job.plannedDate)
+      : "Non programmato";
 
-  const cfg = STATUS_CONFIG[job.status] ?? {
-    color: "bg-gray-200 text-gray-700",
-    label: job.status.replaceAll("_", " "),
-    icon: "ℹ️",
-  };
+  // 🔹 mostra SOLO lo stato del DB (coerente con Agenda/MyJobs)
+  const effectiveStatus = job.status as JobStatus;
+  const cfg = STATUS_CONFIG[effectiveStatus];
 
   return (
     <Card>
@@ -140,9 +134,9 @@ export default function JobHeader({ job, customer, order }: JobHeaderProps) {
 
         {/* Colonna destra */}
         <div className="flex flex-col items-start md:items-end gap-3">
-          <Badge className={`flex items-center gap-1 ${cfg.color}`}>
-            <span>{cfg.icon}</span> {cfg.label}
-          </Badge>
+          <span className={`${cfg.color} flex items-center gap-1`}>
+            {cfg.icon} {cfg.label}
+          </span>
 
           <div className="flex items-center gap-2">
             <span className="text-lg">📅</span>

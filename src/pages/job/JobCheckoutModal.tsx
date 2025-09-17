@@ -5,6 +5,7 @@ import { supabase } from "@/supabaseClient";
 import { documentAPI } from "@/api/documentAPI";
 import { jobAPI } from "@/api/jobs";
 import { toast } from "react-hot-toast";
+import { toLocalISODate, toDbDate, formatDateTime } from "@/utils/date";
 
 /* ===================== Helpers ===================== */
 
@@ -16,7 +17,7 @@ async function uploadFineLavoro(
   checkoutIndex: number
 ) {
   const BUCKET = "order-files";
-  const today = new Date().toISOString().split("T")[0];
+  const today = toLocalISODate(new Date());
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -59,7 +60,7 @@ async function addCheckoutEvent(
   requestReview: "si" | "no"
 ) {
   const report = `--- CHECKOUT REPORT ---
-Data: ${new Date().toLocaleString("it-IT", { timeZone: "Europe/Rome" })}
+Data: ${formatDateTime(new Date())}
 Esito: ${stato.toUpperCase()}
 Tecnici: ${job.team?.map((t) => t.name).join(", ") || "-"}
 Recensione richiesta: ${requestReview === "si" ? "SÌ" : "NO"}
@@ -96,7 +97,7 @@ ${finalConclusion || "-"}
 
   const { error } = await supabase.from("job_events").insert({
     job_id: jobId,
-    date: new Date().toISOString(),
+    date: toDbDate(new Date()),
     type:
       stato === "completato"
         ? "check_out_completato"
@@ -184,7 +185,7 @@ export default function JobCheckoutModal({
         await uploadFineLavoro(job.id, files, currentUser.id, checkoutIndex);
       }
 
-      // 2) Salva evento checkout con report (inclusa recensione richiesta Sì/No)
+      // 2) Salva evento checkout con report
       await addCheckoutEvent(
         job.id,
         stato,
@@ -219,7 +220,7 @@ export default function JobCheckoutModal({
               body: {
                 customerName: job.customer.name,
                 customerEmail: job.customer.email,
-                completed: stato === "completato", // TRUE se completato, FALSE se no
+                completed: stato === "completato",
               },
             }
           );
@@ -369,9 +370,9 @@ export default function JobCheckoutModal({
                         className="flex justify-between items-center border p-2 rounded-md bg-gray-50"
                       >
                         <div className="truncate max-w-[70%]">
-                          {`fine_lavoro_${checkoutIndex}_${
-                            new Date().toISOString().split("T")[0]
-                          }.${ext}`}
+                          {`fine_lavoro_${checkoutIndex}_${toLocalISODate(
+                            new Date()
+                          )}.${ext}`}
                           <span className="ml-2 text-xs text-gray-500">
                             {(f.size / 1024 / 1024).toFixed(2)} MB
                           </span>
