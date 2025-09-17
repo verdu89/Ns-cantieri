@@ -87,7 +87,12 @@ export interface Job {
   jobOrderId: string;
   createdAt: string;
   plannedDate: string | null;
-  title: string;
+  title:
+    | "consegna"
+    | "montaggio"
+    | "consegna_montaggio"
+    | "assistenza"
+    | "altro";
   notes?: string;
   notesBackoffice?: string;
   assignedWorkers: string[];

@@ -27,6 +27,8 @@ import OrderDetail from "./pages/backoffice/OrderDetail";
 import Montatori from "./pages/backoffice/Montatori";
 import Documenti from "./pages/backoffice/Documenti";
 import Report from "./pages/backoffice/Report";
+import EconomicDashboard from "@/pages/backoffice/EconomicDashboard";
+
 import Settings from "./pages/Settings";
 import MyJobs from "./pages/MyJobs";
 
@@ -113,6 +115,10 @@ const AppRoutesInner = () => {
               {user.role === "admin" && (
                 <Route path="/backoffice/report" element={<Report />} />
               )}
+              <Route
+                path="/backoffice/economic-dashboard"
+                element={<EconomicDashboard />}
+              />
 
               <Route path="/backoffice/jobs/:id" element={<JobDetail />} />
               <Route path="/backoffice/settings" element={<Settings />} />

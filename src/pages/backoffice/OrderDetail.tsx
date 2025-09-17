@@ -22,6 +22,14 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import toast from "react-hot-toast";
 import { formatDateTime, toDbDate } from "@/utils/date";
 
+const TYPE_LABELS: Record<Job["title"], string> = {
+  consegna: "📦 Consegna",
+  montaggio: "🔧 Montaggio",
+  consegna_montaggio: "🚚🔧 Consegna + Montaggio",
+  assistenza: "🛠️ Assistenza",
+  altro: "📝 Altro",
+};
+
 // 🔹 Per creare un job
 type JobCreate = Omit<
   Job,
@@ -110,7 +118,7 @@ export default function OrderDetail() {
     try {
       if (editingId) {
         const payload: Partial<Job> = {
-          title: formData.title,
+          title: formData.title as Job["title"],
           plannedDate: (formData.plannedDate as string | null) ?? null,
           assignedWorkers: formData.assignedWorkers ?? [],
           notes: formData.notes ?? "",
@@ -129,7 +137,7 @@ export default function OrderDetail() {
         const newJobPayload: JobCreate = {
           jobOrderId: order.id,
           createdAt: toDbDate(new Date()), // 🔄 sostituito
-          title: formData.title!,
+          title: formData.title as Job["title"],
           notes: formData.notes ?? "",
           status: "in_attesa_programmazione",
           files: [],
@@ -490,7 +498,7 @@ export default function OrderDetail() {
                 <div className="text-sm text-gray-500">
                   📅 {j.plannedDate ? formatDateTime(j.plannedDate) : "-"}
                 </div>
-                <div className="font-semibold mt-1">{j.title}</div>
+                <div className="font-semibold mt-1">{TYPE_LABELS[j.title]}</div>
                 <div className="text-sm mt-1">
                   👷{" "}
                   {j.assignedWorkers?.length
@@ -563,7 +571,7 @@ export default function OrderDetail() {
                     <td className="p-2">
                       {j.plannedDate ? formatDateTime(j.plannedDate) : "-"}
                     </td>
-                    <td className="p-2">{j.title}</td>
+                    <td className="p-2">{TYPE_LABELS[j.title]}</td>
                     <td className="p-2">
                       {j.assignedWorkers?.length
                         ? j.assignedWorkers
@@ -621,16 +629,26 @@ export default function OrderDetail() {
               {editingId ? "✏️ Modifica Intervento" : "➕ Nuovo Intervento"}
             </h2>
 
-            <input
-              type="text"
-              name="title"
-              placeholder="Tipologia intervento *"
+            <select
+              name="type"
               value={formData.title ?? ""}
               onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
+                setFormData({
+                  ...formData,
+                  title: e.target.value as Job["title"],
+                })
               }
               className="w-full p-2 border rounded-lg mb-2"
-            />
+            >
+              <option value="">Seleziona tipo *</option>
+              <option value="consegna">📦 Consegna</option>
+              <option value="montaggio">🔧 Montaggio</option>
+              <option value="consegna_montaggio">
+                🚚🔧 Consegna + Montaggio
+              </option>
+              <option value="assistenza">🛠️ Assistenza</option>
+              <option value="altro">📝 Altro</option>
+            </select>
 
             <textarea
               name="notes"
