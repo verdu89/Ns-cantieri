@@ -5,6 +5,7 @@ import path from "path";
 // https://vite.dev/config/
 export default defineConfig({
   base: "/Ns-cantieri/",
+  appType: "spa",
   plugins: [react()],
   resolve: {
     alias: {
