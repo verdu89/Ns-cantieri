@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:apk": "tsc -b && vite build --config vite.config.apk.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },
