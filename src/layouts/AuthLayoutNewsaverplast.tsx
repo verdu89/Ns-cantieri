@@ -8,7 +8,7 @@ export default function AuthLayout() {
 
       <div className="hidden lg:flex w-1/2 text-gray-800 flex-col justify-center items-center p-16">
         <motion.img
-          src={`${import.meta.env.BASE_URL}img/logo.png`}
+          src="/img/logo.png"
           alt="NS Cantieri"
           className="h-20 mb-12 opacity-95" // Logo ingrandito
           initial={{ opacity: 0, y: -20 }}

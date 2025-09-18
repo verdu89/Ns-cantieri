@@ -139,7 +139,7 @@ export default function NewsaverplastLayout() {
             </button>
             <div className="ml-2 flex items-center gap-2">
               <img
-                src={`${import.meta.env.BASE_URL}img/logo.png`}
+                src="/img/logo.png"
                 alt="Logo NS Cantieri"
                 className="h-16 w-[150px] sm:h-20 sm:w-[200px] md:h-24 md:w-[250px] lg:h-28 lg:w-[300px] object-auto"
               />
