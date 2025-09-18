@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 export default defineConfig({
-  base: "/Ns-cantieri/",
+  base: "./",
   appType: "spa",
   plugins: [react()],
   resolve: {
