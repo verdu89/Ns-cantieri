@@ -211,6 +211,7 @@ export default function JobCheckoutModal({
           console.log("Invio a add-review-request:", {
             jobId: job.id,
             customerName: job.customer.name,
+            customerPhone: job.customer.phone,
             customerEmail: job.customer.email,
           });
 
@@ -219,6 +220,7 @@ export default function JobCheckoutModal({
             {
               body: {
                 customerName: job.customer.name,
+                customerPhone: job.customer.phone,
                 customerEmail: job.customer.email,
                 completed: stato === "completato",
               },

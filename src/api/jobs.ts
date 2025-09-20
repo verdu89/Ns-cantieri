@@ -47,7 +47,7 @@ function mapBase(j: any): Job {
     notes: j.notes ?? null,
     notesBackoffice: j.notesBackoffice ?? null,
     location: j.location ?? {},
-    customer: { id: "", name: "" } as Customer,
+    customer: { id: "", phone: "", name: "" } as Customer,
     team: [],
     payments: [],
     docs: [],
