@@ -8,6 +8,7 @@ import WorkerNavbar from "./WorkerNavbar";
 import UserMenu from "@/components/UserMenu";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import logo from "@/assets/logo.png";
 
 export default function NewsaverplastLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -139,7 +140,7 @@ export default function NewsaverplastLayout() {
             </button>
             <div className="ml-2 flex items-center gap-2">
               <img
-                src="/img/logo.png"
+                src={logo}
                 alt="Logo NS Cantieri"
                 className="h-16 w-[150px] sm:h-20 sm:w-[200px] md:h-24 md:w-[250px] lg:h-28 lg:w-[300px] object-auto"
               />

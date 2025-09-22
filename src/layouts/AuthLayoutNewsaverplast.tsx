@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { motion } from "framer-motion";
+import logo from "@/assets/logo.png";
 
 export default function AuthLayout() {
   return (
@@ -8,7 +9,7 @@ export default function AuthLayout() {
 
       <div className="hidden lg:flex w-1/2 text-gray-800 flex-col justify-center items-center p-16">
         <motion.img
-          src="/img/logo.png"
+          src={logo}
           alt="NS Cantieri"
           className="h-20 mb-12 opacity-95" // Logo ingrandito
           initial={{ opacity: 0, y: -20 }}
@@ -37,11 +38,7 @@ export default function AuthLayout() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 relative">
         {/* Branding mobile (visibile solo < lg) */}
         <div className="flex flex-col items-center mb-8 lg:hidden">
-          <img
-            src="/img/logo.png"
-            alt="NS Cantieri"
-            className="h-14 mb-3 opacity-95"
-          />
+          <img src={logo} alt="NS Cantieri" className="h-14 mb-3 opacity-95" />
           <h1 className="text-5xl font-extrabold tracking-tight text-center text-gray-900">
             N<span className="text-orange-500">S</span> cantieri
           </h1>
