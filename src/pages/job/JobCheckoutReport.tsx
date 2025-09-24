@@ -1,14 +1,16 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import type { Job, Documento, JobEvent } from "@/types";
+import type { Job, Documento, JobEvent, JobOrder } from "@/types";
 import { formatDateTime, parseDate } from "@/utils/date";
 
 export default function JobCheckoutReport({
   job,
   docs,
+  order,
 }: {
   job: Job;
   docs: Documento[];
+  order: JobOrder;
 }) {
   const checkoutEvents: JobEvent[] = (job.events || [])
     .filter(
@@ -103,6 +105,10 @@ export default function JobCheckoutReport({
                           </head>
                           <body>
                             <h2>📋 Report Checkout</h2>
+                            <p><strong>Cliente:</strong> ${
+                              job.customer?.name ?? "-"
+                            }</p>
+                            <p><strong>Commessa:</strong> ${order.code}</p> 
                             <p><strong>Data:</strong> ${formattedDate}</p>
                             <pre>${ev.notes ?? ""}</pre>
                           </body>

@@ -249,7 +249,7 @@ export default function JobDetail() {
 
       {/* CHECKOUT SUMMARY */}
       <div className="pt-20">
-        <JobCheckoutReport job={job} docs={docs} />
+        <JobCheckoutReport job={job} docs={docs} order={order!} />
       </div>
 
       {/* MODALE CHECKOUT */}
