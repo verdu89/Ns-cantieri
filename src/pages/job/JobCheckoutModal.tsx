@@ -6,6 +6,7 @@ import { documentAPI } from "@/api/documentAPI";
 import { jobAPI } from "@/api/jobs";
 import { toast } from "react-hot-toast";
 import { toLocalISODate, toDbDate, formatDateTime } from "@/utils/date";
+import imageCompression from "browser-image-compression";
 
 /* ===================== Helpers ===================== */
 
@@ -160,9 +161,32 @@ export default function JobCheckoutModal({
         ev.type === "check_out_da_completare"
     ).length || 0) + 1;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles([...files, ...Array.from(e.target.files)]);
+      const uploadedFiles = Array.from(e.target.files);
+
+      const compressedFiles: File[] = [];
+      for (const file of uploadedFiles) {
+        if (file.type.startsWith("image/")) {
+          const options = {
+            maxSizeMB: 1, // peso massimo in MB
+            maxWidthOrHeight: 1280, // resize lato lungo
+            useWebWorker: true, // migliora performance
+          };
+
+          try {
+            const compressed = await imageCompression(file, options);
+            compressedFiles.push(compressed);
+          } catch (err) {
+            console.error("Errore compressione immagine:", err);
+            compressedFiles.push(file); // fallback: uso originale
+          }
+        } else {
+          compressedFiles.push(file); // PDF o altri file → niente compressione
+        }
+      }
+
+      setFiles((prev) => [...prev, ...compressedFiles]);
     }
   };
 
