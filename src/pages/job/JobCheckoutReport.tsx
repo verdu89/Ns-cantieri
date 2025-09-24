@@ -109,7 +109,6 @@ export default function JobCheckoutReport({
                               job.customer?.name ?? "-"
                             }</p>
                             <p><strong>Commessa:</strong> ${order.code}</p> 
-                            <p><strong>Data:</strong> ${formattedDate}</p>
                             <pre>${ev.notes ?? ""}</pre>
                           </body>
                         </html>
