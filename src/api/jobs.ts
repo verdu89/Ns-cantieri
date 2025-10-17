@@ -117,18 +117,51 @@ export const jobAPI = {
   async list(): Promise<Job[]> {
     const { data, error } = await supabase
       .from("jobs")
-      .select(baseSelect())
+      .select(
+        `
+  ${baseSelect()},
+  job_orders!jobs_job_order_id_fkey (
+    customer_id
+  )
+`
+      )
+
       .order("planned_date", { ascending: true });
 
     if (error) throw error;
 
-    const jobs = (data || []).map(mapBase);
+    const jobs = (data || []).map((j: any) => {
+      const base = mapBase(j);
+
+      // Carichiamo il cliente solo se presente
+      if (j.job_orders?.customer_id) {
+        base.customer.id = j.job_orders.customer_id;
+      }
+
+      return base;
+    });
 
     for (const j of jobs) {
       j.payments = await loadPayments(j.id);
     }
 
-    // 🔹 stato calcolato a runtime
+    // ✅ Carichiamo tutti i clienti in un’unica query e poi li abbiniamo
+    const customerIds = [
+      ...new Set(jobs.map((j) => j.customer?.id).filter(Boolean)),
+    ];
+
+    if (customerIds.length > 0) {
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("id, name, phone")
+        .in("id", customerIds);
+
+      for (const j of jobs) {
+        const cust = customers?.find((c) => c.id === j.customer?.id);
+        if (cust) j.customer = cust;
+      }
+    }
+
     return jobs.map(autoUpdateStatus);
   },
 
