@@ -115,37 +115,63 @@ function autoUpdateStatus(job: Job): Job {
 
 export const jobAPI = {
   async list(): Promise<Job[]> {
+    // 1️⃣ Carichiamo tutti i job con il customer_id collegato
     const { data, error } = await supabase
       .from("jobs")
       .select(
         `
-  ${baseSelect()},
-  job_orders!jobs_job_order_id_fkey (
-    customer_id
-  )
-`
+      ${baseSelect()},
+      job_orders!jobs_job_order_id_fkey (
+        customer_id
       )
-
+    `
+      )
       .order("planned_date", { ascending: true });
 
     if (error) throw error;
 
     const jobs = (data || []).map((j: any) => {
       const base = mapBase(j);
-
-      // Carichiamo il cliente solo se presente
       if (j.job_orders?.customer_id) {
         base.customer.id = j.job_orders.customer_id;
       }
-
       return base;
     });
 
+    // 2️⃣ Carichiamo TUTTI i pagamenti in un'unica query
+    const jobIds = jobs.map((j) => j.id);
+    const { data: allPayments } = await supabase
+      .from("payments")
+      .select(
+        `
+      id,
+      job_id,
+      label,
+      amount,
+      collected,
+      partial,
+      collected_amount
+    `
+      )
+      .in("job_id", jobIds);
+
+    // 3️⃣ Raggruppiamo i pagamenti per job e li assegnamo
     for (const j of jobs) {
-      j.payments = await loadPayments(j.id);
+      j.payments = (allPayments || [])
+        .filter((p) => p.job_id === j.id)
+        .map((p: any) => ({
+          id: p.id,
+          label: p.label,
+          amount: Number(p.amount),
+          collected: p.collected,
+          partial: p.partial ?? false,
+          collectedAmount: p.collected_amount ?? null,
+          jobId: p.job_id,
+          createdAt: null,
+        }));
     }
 
-    // ✅ Carichiamo tutti i clienti in un’unica query e poi li abbiniamo
+    // 4️⃣ Carichiamo TUTTI i clienti in un colpo solo (come prima)
     const customerIds = [
       ...new Set(jobs.map((j) => j.customer?.id).filter(Boolean)),
     ];
