@@ -1,24 +1,24 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { jobOrderAPI } from "@/api/jobOrders";
-import { customerAPI } from "@/api/customers";
-import { jobAPI } from "@/api/jobs";
-import type { JobOrder, Customer, Job, Payment } from "@/types";
+import { supabase } from "@/supabaseClient";
+import type { Payment } from "@/types";
 
-function formatDate(dateStr?: string) {
+type EconomicOrder = {
+  id: string;
+  code: string;
+  createdAt: string | null;
+  customer: { id: string; name: string } | null;
+  payments: Payment[];
+};
+
+function formatDate(dateStr?: string | null) {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
   return d.toLocaleDateString("it-IT");
 }
 
 export default function EconomicDashboard() {
-  const [orders, setOrders] = useState<
-    (JobOrder & {
-      customer?: Customer | null;
-      jobs: Job[];
-      payments: Payment[];
-    })[]
-  >([]);
+  const [orders, setOrders] = useState<EconomicOrder[]>([]);
   const [period, setPeriod] = useState<"all" | "day" | "week" | "month">("all");
   const [filterYear, setFilterYear] = useState<number | "all">("all");
   const [filterCommessa, setFilterCommessa] = useState("");
@@ -26,31 +26,53 @@ export default function EconomicDashboard() {
 
   useEffect(() => {
     async function load() {
-      const allOrders = await jobOrderAPI.list();
-      if (!allOrders) return;
+      const [ordersRes, customersRes, jobsRes, paymentsRes] = await Promise.all(
+        [
+          supabase
+            .from("job_orders")
+            .select("id, code, created_at, customer_id"),
+          supabase.from("customers").select("id, name"),
+          supabase.from("jobs").select("id, job_order_id"),
+          supabase
+            .from("payments")
+            .select("id, job_id, amount, collected, partial, collected_amount"),
+        ]
+      );
 
-      const results: (JobOrder & {
-        customer?: Customer | null;
-        jobs: Job[];
-        payments: Payment[];
-      })[] = [];
+      if (ordersRes.error) throw ordersRes.error;
+      if (customersRes.error) throw customersRes.error;
+      if (jobsRes.error) throw jobsRes.error;
+      if (paymentsRes.error) throw paymentsRes.error;
 
-      for (const o of allOrders) {
-        const customer = await customerAPI.getById(o.customerId);
-        const jobs = await jobAPI.listByOrder(o.id);
-        const payments: Payment[] = jobs.flatMap((j) =>
-          (j.payments ?? []).map((p) => ({ ...p, jobId: j.id }))
-        );
+      const orders = ordersRes.data || [];
+      const customers = customersRes.data || [];
+      const jobs = jobsRes.data || [];
+      const payments = paymentsRes.data || [];
 
-        results.push({ ...o, customer, jobs, payments });
-      }
+      const paymentsByOrder: Record<string, Payment[]> = {};
+
+      payments.forEach((p: any) => {
+        const job = jobs.find((j: any) => j.id === p.job_id);
+        if (job) {
+          if (!paymentsByOrder[job.job_order_id])
+            paymentsByOrder[job.job_order_id] = [];
+          paymentsByOrder[job.job_order_id].push(p);
+        }
+      });
+
+      const results: EconomicOrder[] = orders.map((o: any) => ({
+        id: o.id,
+        code: o.code,
+        createdAt: o.created_at,
+        customer: customers.find((c) => c.id === o.customer_id) || null,
+        payments: paymentsByOrder[o.id] || [],
+      }));
 
       setOrders(results);
     }
     load();
   }, []);
 
-  // 🔹 Estrai anni disponibili
   const availableYears = useMemo(() => {
     const years = new Set<number>();
     orders.forEach((o) => {
@@ -61,7 +83,6 @@ export default function EconomicDashboard() {
     return Array.from(years).sort((a, b) => b - a);
   }, [orders]);
 
-  // 🔹 Filtraggio
   const filteredOrders = useMemo(() => {
     const now = new Date();
 
@@ -104,7 +125,6 @@ export default function EconomicDashboard() {
     });
   }, [orders, filterCommessa, filterCliente, period, filterYear]);
 
-  // 🔹 Totali
   const totals = useMemo(() => {
     const expected = filteredOrders.reduce(
       (s, o) => s + o.payments.reduce((ss, p) => ss + (p.amount ?? 0), 0),

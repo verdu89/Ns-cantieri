@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { jobAPI } from "@/api/jobs";
-import { workerAPI } from "@/api/workers";
+import { supabase } from "@/supabaseClient";
 import type { Job, User } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { STATUS_CONFIG, getEffectiveStatus } from "@/config/statusConfig";
@@ -46,34 +46,47 @@ export default function Agenda() {
     else setLoading(true);
 
     try {
-      let j: Job[] = [];
+      // 🔹 1. Carico tutti i job (già con customer & payments grazie alla tua list)
+      let j: Job[] =
+        user?.role === "worker" && user.workerId
+          ? await jobAPI.listAssigned(String(user.workerId))
+          : await jobAPI.list();
 
-      if (user?.role === "worker" && user.workerId) {
-        j = await jobAPI.listAssigned(String(user.workerId));
-      } else {
-        j = await jobAPI.list();
-        await workerAPI.list();
+      // 🔹 2. Carico tutti i worker in una sola query (solo se servono)
+      const { data: workers } = await supabase
+        .from("workers")
+        .select("id, name");
+
+      // 🔹 3. Popolo i team senza query extra
+      const jobsWithTeam = j.map((job) => ({
+        ...job,
+        team: job.assignedWorkers.map(
+          (wid) => workers?.find((w) => w.id === wid) || { id: wid, name: "?" }
+        ),
+      }));
+
+      // 🔹 4. Aggiorno stato effettivo SOLO SE CAMBIA (e in parallelo)
+      const jobsToUpdate = jobsWithTeam.filter(
+        (job) => getEffectiveStatus(job.status, job.plannedDate) !== job.status
+      );
+
+      if (jobsToUpdate.length > 0) {
+        await Promise.all(
+          jobsToUpdate.map((job) =>
+            jobAPI.update(job.id, {
+              status: getEffectiveStatus(job.status, job.plannedDate),
+            })
+          )
+        );
       }
 
-      // 🔹 aggiorno in tempo reale lo stato effettivo
-      const syncedJobs: Job[] = [];
-      for (const job of j) {
-        const effectiveStatus = getEffectiveStatus(job.status, job.plannedDate);
-        if (effectiveStatus !== job.status) {
-          try {
-            await jobAPI.update(job.id, { status: effectiveStatus });
-            syncedJobs.push({ ...job, status: effectiveStatus });
-          } catch (err) {
-            console.error("Errore aggiornando stato job:", job.id, err);
-            toast.error("Errore aggiornando stato di un lavoro.");
-            syncedJobs.push(job);
-          }
-        } else {
-          syncedJobs.push(job);
-        }
-      }
+      // 🔹 5. Applico lo stato aggiornato
+      const syncedJobs = jobsWithTeam.map((job) => ({
+        ...job,
+        status: getEffectiveStatus(job.status, job.plannedDate),
+      }));
 
-      setJobs(syncedJobs);
+      setJobs(syncedJobs as Job[]);
     } catch (err) {
       console.error("Errore caricando lavori:", err);
       toast.error("Errore durante il caricamento dei lavori.");

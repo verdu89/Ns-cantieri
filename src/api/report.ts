@@ -1,24 +1,43 @@
-import { jobAPI } from "./jobs";
-import { jobOrderAPI } from "./jobOrders";
-import { customerAPI } from "./customers";
+// src/api/report.ts
+import { supabase } from "../supabaseClient";
 
 export const reportAPI = {
   async overview() {
-    const [jobs, orders, customers] = await Promise.all([
-      jobAPI.list(),
-      jobOrderAPI.list(),
-      customerAPI.list(),
+    // 1) Contatori veloci (HEAD + count): non trasferiscono righe
+    const [
+      { count: jobsCount, error: jobsErr },
+      { count: ordersCount, error: ordersErr },
+      { count: customersCount, error: custErr },
+    ] = await Promise.all([
+      supabase.from("jobs").select("*", { count: "exact", head: true }),
+      supabase.from("job_orders").select("*", { count: "exact", head: true }),
+      supabase.from("customers").select("*", { count: "exact", head: true }),
     ]);
 
-    const jobsByStatus = jobs.reduce<Record<string, number>>((acc, j) => {
-      acc[j.status] = (acc[j.status] || 0) + 1;
-      return acc;
-    }, {});
+    if (jobsErr) throw jobsErr;
+    if (ordersErr) throw ordersErr;
+    if (custErr) throw custErr;
+
+    // 2) Distribuzione per status: scarichiamo solo la colonna 'status' (leggero)
+    const { data: statusRows, error: statusErr } = await supabase
+      .from("jobs")
+      .select("status"); // una sola colonna, poche decine/centinaia di valori
+
+    if (statusErr) throw statusErr;
+
+    const jobsByStatus = (statusRows || []).reduce<Record<string, number>>(
+      (acc, r: any) => {
+        const key = r.status ?? "sconosciuto";
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
 
     return {
-      jobsCount: jobs.length,
-      ordersCount: orders.length,
-      customersCount: customers.length,
+      jobsCount: jobsCount ?? 0,
+      ordersCount: ordersCount ?? 0,
+      customersCount: customersCount ?? 0,
       jobsByStatus,
     };
   },
