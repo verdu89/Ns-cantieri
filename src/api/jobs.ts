@@ -210,18 +210,77 @@ export const jobAPI = {
   },
 
   async listAssigned(userId: string): Promise<Job[]> {
+    // 1️⃣ Prendi tutti i job assegnati a questo worker
     const { data, error } = await supabase
       .from("jobs")
-      .select(baseSelect())
+      .select(
+        `
+      ${baseSelect()},
+      job_orders!jobs_job_order_id_fkey (
+        customer_id
+      )
+    `
+      )
       .contains("assigned_workers", [userId])
       .order("planned_date", { ascending: true });
 
     if (error) throw error;
 
-    const jobs = (data || []).map(mapBase);
+    const jobs = (data || []).map((j: any) => {
+      const base = mapBase(j);
+      if (j.job_orders?.customer_id) {
+        base.customer.id = j.job_orders.customer_id;
+      }
+      return base;
+    });
+
+    // 2️⃣ Carichiamo TUTTI i pagamenti in un'unica query
+    const jobIds = jobs.map((j) => j.id);
+    const { data: allPayments } = await supabase
+      .from("payments")
+      .select(
+        `
+      id,
+      job_id,
+      label,
+      amount,
+      collected,
+      partial,
+      collected_amount
+    `
+      )
+      .in("job_id", jobIds);
 
     for (const j of jobs) {
-      j.payments = await loadPayments(j.id);
+      j.payments = (allPayments || [])
+        .filter((p) => p.job_id === j.id)
+        .map((p: any) => ({
+          id: p.id,
+          label: p.label,
+          amount: Number(p.amount),
+          collected: p.collected,
+          partial: p.partial ?? false,
+          collectedAmount: p.collected_amount ?? null,
+          jobId: p.job_id,
+          createdAt: null,
+        }));
+    }
+
+    // 3️⃣ Carichiamo tutti i clienti in un colpo solo
+    const customerIds = [
+      ...new Set(jobs.map((j) => j.customer?.id).filter(Boolean)),
+    ];
+
+    if (customerIds.length > 0) {
+      const { data: customers } = await supabase
+        .from("customers")
+        .select("id, name, phone")
+        .in("id", customerIds);
+
+      for (const j of jobs) {
+        const cust = customers?.find((c) => c.id === j.customer?.id);
+        if (cust) j.customer = cust;
+      }
     }
 
     return jobs.map(autoUpdateStatus);
