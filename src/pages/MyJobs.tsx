@@ -211,7 +211,7 @@ export default function MyJobs() {
       {filteredJobs.length === 0 ? (
         <div className="text-gray-500">Nessun lavoro trovato.</div>
       ) : (
-        <div className="grid gap-4">
+        <div className="flex flex-col gap-4">
           {filteredJobs.map((job) => {
             const cfg = STATUS_CONFIG[job.effectiveStatus];
             return (
