@@ -226,6 +226,7 @@ export default function CustomerDetail() {
                     Numero {sortAsc ? "▲" : "▼"}
                   </th>
                   <th className="p-3">Indirizzo / Maps</th>
+                  <th className="p-3">Note</th>
                   <th className="p-3 text-right">Azioni</th>
                 </tr>
               </thead>
@@ -258,6 +259,9 @@ export default function CustomerDetail() {
                         "-"
                       )}
                     </td>
+                    <td className="p-3 text-gray-600 truncate max-w-[200px]">
+                      {o.notes ?? "-"}
+                    </td>
                     <td className="p-3 flex gap-2 justify-end">
                       <button
                         title="Modifica"
@@ -287,60 +291,61 @@ export default function CustomerDetail() {
           )}
         </div>
 
-        {/* Mobile: cards */}
-        <div className="md:hidden space-y-3">
+        {/* Mobile: cards compatte */}
+        <div className="md:hidden space-y-2">
           {filteredOrders.length === 0 ? (
             <p className="text-gray-500">Nessuna commessa trovata</p>
           ) : (
             filteredOrders.map((o) => (
               <div
                 key={o.id}
-                className={`border rounded-lg shadow-sm p-4 bg-white hover:bg-gray-50 transition cursor-pointer ${
+                className={`bg-white border rounded-xl p-3 flex flex-col gap-1 shadow-sm active:bg-gray-100 transition ${
                   lastCreatedOrderId === o.id
                     ? "bg-green-100 animate-pulse"
                     : ""
                 }`}
                 onClick={() => navigate(`/backoffice/orders/${o.id}`)}
               >
-                <div className="font-bold text-lg">{o.code}</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  📍{" "}
-                  {o.location.address ? (
-                    o.location.address
-                  ) : o.location.mapsUrl ? (
-                    <a
-                      href={o.location.mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-blue-600 underline"
+                {/* Riga superiore con codice e azioni */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold">{o.code}</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(o);
+                      }}
+                      className="p-1 rounded-md hover:bg-yellow-100 text-yellow-600"
                     >
-                      Apri in Maps
-                    </a>
-                  ) : (
-                    "-"
-                  )}
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(o.id);
+                      }}
+                      className="p-1 rounded-md hover:bg-red-100 text-red-600"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(o);
-                    }}
-                    className="p-2 rounded-lg hover:bg-red-100 text-yellow-600"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(o.id);
-                    }}
-                    className="p-2 rounded-lg hover:bg-red-100 text-red-600"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+
+                {/* Indirizzo con emoji */}
+                <span className="text-gray-600 text-xs">
+                  {o.location.address
+                    ? `📍 ${o.location.address}`
+                    : o.location.mapsUrl
+                    ? "📍 Apri in Maps"
+                    : "-"}
+                </span>
+
+                {/* Note commessa */}
+                {o.notes && (
+                  <span className="text-gray-500 text-xs truncate">
+                    📝 {o.notes}
+                  </span>
+                )}
               </div>
             ))
           )}

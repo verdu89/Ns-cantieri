@@ -562,85 +562,110 @@ export default function OrderDetail() {
           </Button>
         </div>
 
-        {/* Mobile: card */}
-        <div className="space-y-4 md:hidden">
-          {sortedJobs.map((j) => {
-            const st = getEffectiveStatus(j.status, j.plannedDate);
-            const cfg = STATUS_CONFIG[st];
-            const isLateRow = j.plannedDate && st === "in_ritardo";
-            const highlight = lastCreatedJobId === j.id;
+        {/* Mobile: card compatte */}
+        <div className="md:hidden space-y-2">
+          {sortedJobs.length === 0 ? (
+            <p className="text-gray-500">Nessun intervento presente</p>
+          ) : (
+            sortedJobs.map((j) => {
+              const st = getEffectiveStatus(j.status, j.plannedDate);
+              const cfg = STATUS_CONFIG[st];
+              const isLateRow = j.plannedDate && st === "in_ritardo";
+              const highlight = lastCreatedJobId === j.id;
 
-            return (
-              <div
-                key={j.id}
-                className={`border rounded-lg p-4 shadow-sm cursor-pointer transition ${
-                  highlight
-                    ? "bg-green-100 animate-pulse"
-                    : "bg-white hover:bg-gray-50"
-                } ${isLateRow ? "ring-1 ring-red-300" : ""}`}
-                onClick={() => navigate(`/backoffice/jobs/${j.id}`)}
-              >
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Calendar size={16} className="opacity-70" />
-                  <span>
-                    {j.plannedDate ? formatDateTime(j.plannedDate) : "-"}
-                  </span>
-                </div>
+              const renderType = (title: string) => {
+                switch (title) {
+                  case "consegna":
+                    return "📦 Consegna";
+                  case "montaggio":
+                    return "🔧 Montaggio";
+                  case "consegna_montaggio":
+                    return "🚚🔧 Consegna + Montaggio";
+                  case "assistenza":
+                    return "🛠️ Assistenza";
+                  case "altro":
+                    return "📝 Altro";
+                  default:
+                    return title;
+                }
+              };
 
-                <div className="font-semibold mt-1">{TYPE_LABELS[j.title]}</div>
+              return (
+                <div
+                  key={j.id}
+                  className={`bg-white border rounded-xl p-3 shadow-sm cursor-pointer transition flex flex-col gap-1
+            ${
+              highlight
+                ? "bg-green-100 animate-pulse"
+                : "active:bg-gray-100 hover:bg-gray-50"
+            }
+            ${isLateRow ? "ring-1 ring-red-300" : ""}`}
+                  onClick={() => navigate(`/backoffice/jobs/${j.id}`)}
+                >
+                  {/* Data + Tipo */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm flex items-center gap-2 text-gray-700">
+                      <Calendar size={14} className="opacity-70" />
+                      {j.plannedDate ? formatDateTime(j.plannedDate) : "-"}
+                    </div>
+                    <div className="font-semibold text-sm">
+                      {renderType(j.title)}
+                    </div>
+                  </div>
 
-                <div className="text-sm mt-1 flex items-center gap-2">
-                  <Users size={16} className="opacity-70" />
-                  <span>
+                  {/* Squadra */}
+                  <div className="text-xs text-gray-600 flex items-center gap-2">
+                    <Users size={14} className="opacity-70" />
                     {j.assignedWorkers?.length
                       ? j.assignedWorkers
                           .map((wid) => workers.find((w) => w.id === wid)?.name)
                           .join(", ")
                       : "-"}
-                  </span>
-                </div>
-
-                <div className="mt-2">
-                  <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      cfg?.color ?? "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {cfg?.icon} {cfg?.label ?? st}
-                  </span>
-                </div>
-
-                {j.notes && (
-                  <div className="text-sm text-gray-600 mt-1 truncate">
-                    {j.notes}
                   </div>
-                )}
 
-                <div className="flex gap-2 mt-3 justify-end">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(j);
-                    }}
-                    className="p-2 rounded-lg hover:bg-yellow-100 text-yellow-600"
-                    title="Modifica"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(j.id);
-                    }}
-                    className="p-2 rounded-lg hover:bg-yellow-100 text-red-600"
-                    title="Elimina"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  {/* Stato */}
+                  <div>
+                    <span
+                      className={`px-2 py-1 rounded text-xs ${
+                        cfg?.color ?? "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {cfg?.icon} {cfg?.label ?? st}
+                    </span>
+                  </div>
+
+                  {/* Notes */}
+                  {j.notes && (
+                    <div className="text-xs text-gray-600 truncate">
+                      📝 {j.notes}
+                    </div>
+                  )}
+
+                  {/* Azioni */}
+                  <div className="flex gap-1 mt-1 justify-end">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(j);
+                      }}
+                      className="p-1 rounded-md hover:bg-yellow-100 text-yellow-600"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(j.id);
+                      }}
+                      className="p-1 rounded-md hover:bg-red-100 text-red-600"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
         {/* Desktop: tabella */}
@@ -673,6 +698,7 @@ export default function OrderDetail() {
                     } ${isLateRow ? "bg-red-50" : ""}`}
                     onClick={() => navigate(`/backoffice/jobs/${j.id}`)}
                   >
+                    {/* Data */}
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         <Calendar size={16} className="opacity-70" />
@@ -681,7 +707,28 @@ export default function OrderDetail() {
                         </span>
                       </div>
                     </td>
-                    <td className="p-3">{TYPE_LABELS[j.title]}</td>
+
+                    {/* Tipologia con emoji inline */}
+                    <td className="p-3">
+                      {(() => {
+                        switch (j.title) {
+                          case "consegna":
+                            return "📦 Consegna";
+                          case "montaggio":
+                            return "🔧 Montaggio";
+                          case "consegna_montaggio":
+                            return "🚚🔧 Consegna + Montaggio";
+                          case "assistenza":
+                            return "🛠️ Assistenza";
+                          case "altro":
+                            return "📝 Altro";
+                          default:
+                            return j.title;
+                        }
+                      })()}
+                    </td>
+
+                    {/* Squadra */}
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         <Users size={16} className="opacity-70" />
@@ -697,6 +744,8 @@ export default function OrderDetail() {
                         </span>
                       </div>
                     </td>
+
+                    {/* Stato */}
                     <td className="p-3">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
@@ -706,9 +755,13 @@ export default function OrderDetail() {
                         {cfg?.icon} {cfg?.label ?? st}
                       </span>
                     </td>
+
+                    {/* Note */}
                     <td className="p-3 text-gray-600 truncate max-w-[260px]">
                       {j.notes || "-"}
                     </td>
+
+                    {/* Azioni */}
                     <td className="p-3">
                       <div className="flex gap-2 justify-end">
                         <button
@@ -727,7 +780,7 @@ export default function OrderDetail() {
                             e.stopPropagation();
                             handleDelete(j.id);
                           }}
-                          className="p-2 rounded-lg hover:bg-yellow-100 text-red-600"
+                          className="p-2 rounded-lg hover:bg-red-100 text-red-600"
                         >
                           <Trash2 size={18} />
                         </button>

@@ -322,59 +322,63 @@ export default function Orders() {
         )}
       </div>
 
-      {/* Mobile: cards */}
-      <div className="md:hidden space-y-3">
+      {/* Mobile: cards compatte = stile rubrica */}
+      <div className="md:hidden space-y-2">
         {filteredOrders.length === 0 ? (
           <p className="text-gray-500">Nessuna commessa trovata</p>
         ) : (
           filteredOrders.map((o) => (
             <div
               key={o.id}
-              className={`border rounded-lg shadow-sm p-4 bg-white hover:bg-gray-50 transition cursor-pointer ${
+              className={`bg-white border rounded-xl p-3 shadow-sm active:bg-gray-100 transition cursor-pointer ${
                 lastCreatedOrderId === o.id ? "bg-green-100 animate-pulse" : ""
               }`}
               onClick={() => navigate(`/backoffice/orders/${o.id}`)}
             >
-              <div className="font-bold text-lg">{o.code}</div>
-              <div className="text-sm text-gray-600 mt-1">
+              {/* Codice commessa */}
+              <div className="font-semibold text-sm">{o.code}</div>
+
+              {/* Cliente */}
+              <div className="text-gray-600 text-xs mt-0.5">
                 👤 {getCustomerName(o.customerId)}
               </div>
-              <div className="text-sm text-gray-600 mt-1">
+
+              {/* Indirizzo */}
+              <div className="text-gray-500 text-xs mt-0.5">
                 📍{" "}
-                {o.location.address ? (
-                  o.location.address
-                ) : o.location.mapsUrl ? (
-                  <a
-                    href={o.location.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-blue-600 underline"
-                  >
-                    Apri in Maps
-                  </a>
-                ) : (
-                  "-"
-                )}
+                {o.location.address
+                  ? o.location.address
+                  : o.location.mapsUrl
+                  ? "Apri in Maps"
+                  : "-"}
               </div>
-              <div className="flex gap-2 mt-3">
+
+              {/* Note */}
+              {o.notes && (
+                <div className="text-gray-500 text-xs mt-0.5 truncate">
+                  📝 {o.notes}
+                </div>
+              )}
+
+              {/* Azioni */}
+              <div className="flex gap-2 justify-end mt-2">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEdit(o);
                   }}
-                  className="p-2 rounded-lg hover:bg-red-100 text-yellow-600"
+                  className="p-1 rounded-md hover:bg-yellow-100 text-yellow-600"
                 >
-                  <Edit size={18} />
+                  <Edit size={16} />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDelete(o.id);
                   }}
-                  className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                  className="p-1 rounded-md hover:bg-red-100 text-red-600"
                 >
-                  <Trash2 size={18} />
+                  <Trash2 size={16} />
                 </button>
               </div>
             </div>

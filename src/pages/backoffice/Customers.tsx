@@ -234,44 +234,45 @@ export default function Customers() {
       </div>
 
       {/* Mobile: cards */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-2">
         {filteredCustomers.map((c) => (
           <div
             key={c.id}
-            className={`border rounded-lg shadow-sm p-4 bg-white flex items-start gap-3 hover:bg-gray-50 transition cursor-pointer ${
+            className={`bg-white border rounded-xl p-3 flex items-center justify-between shadow-sm active:bg-gray-100 transition ${
               lastCreatedId === c.id ? "bg-green-100 animate-pulse" : ""
             }`}
             onClick={() => navigate(`/backoffice/customers/${c.id}`)}
           >
-            <AvatarCircle name={c.name} />
-            <div className="flex-1">
-              <div className="font-bold text-lg">{c.name}</div>
-              <div className="text-sm text-gray-600">
-                📞 {c.phone ?? "-"} • ✉️ {c.email ?? "-"}
+            {/* Avatar + Info */}
+            <div className="flex items-center gap-3">
+              <AvatarCircle name={c.name} />
+              <div className="flex flex-col">
+                <span className="font-semibold">{c.name}</span>
+                <span className="text-xs text-gray-600">{c.phone ?? "-"}</span>
+                <span className="text-xs text-gray-600">{c.email ?? "-"}</span>
               </div>
-              {c.notes && (
-                <div className="text-sm mt-1 text-gray-700">📝 {c.notes}</div>
-              )}
-              <div className="flex gap-3 mt-3">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEdit(c);
-                  }}
-                  className="p-2 rounded-lg hover:bg-yellow-100 text-yellow-600"
-                >
-                  <Edit size={18} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(c.id);
-                  }}
-                  className="p-2 rounded-lg hover:bg-red-100 text-red-600"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
+            </div>
+
+            {/* Azioni */}
+            <div className="flex gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(c);
+                }}
+                className="p-1 rounded-md hover:bg-yellow-100 text-yellow-600"
+              >
+                <Edit size={16} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(c.id);
+                }}
+                className="p-1 rounded-md hover:bg-red-100 text-red-600"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         ))}
