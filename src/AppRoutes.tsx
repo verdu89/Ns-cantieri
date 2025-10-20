@@ -66,7 +66,7 @@ const AppRoutesInner = () => {
   const getHomeRoute = () => {
     if (!user) return "/login";
     if (user.role === "worker") return "/agenda";
-    return "/backoffice/home";
+    return "/backoffice/agenda";
   };
 
   return (

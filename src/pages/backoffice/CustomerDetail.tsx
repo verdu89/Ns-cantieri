@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/Button";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { customerAPI } from "../../api/customers";
 import { jobOrderAPI } from "../../api/jobOrders";
@@ -7,9 +7,15 @@ import { jobAPI } from "../../api/jobs";
 import type { Customer, JobOrder, Job } from "../../types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "react-hot-toast";
+import { Edit, Trash2 } from "lucide-react";
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const [lastCreatedOrderId, setLastCreatedOrderId] = useState<string | null>(
+    null
+  );
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [orders, setOrders] = useState<JobOrder[]>([]);
@@ -23,7 +29,6 @@ export default function CustomerDetail() {
   const [searchAddress, setSearchAddress] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
 
-  // conferma eliminazione
   const [openConfirm, setOpenConfirm] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
@@ -94,7 +99,11 @@ export default function CustomerDetail() {
           },
           notes: formData.notes,
         });
-        setOrders([...orders, created]);
+
+        setOrders([created, ...orders]);
+        setLastCreatedOrderId(created.id);
+        setTimeout(() => setLastCreatedOrderId(null), 10000);
+
         toast.success("Commessa creata con successo ✅");
       }
 
@@ -207,25 +216,32 @@ export default function CustomerDetail() {
           {filteredOrders.length === 0 ? (
             <p className="text-gray-500">Nessuna commessa trovata</p>
           ) : (
-            <table className="w-full border-collapse bg-white shadow rounded-lg overflow-hidden">
-              <thead className="bg-gray-100 text-left">
+            <table className="w-full border-collapse bg-white shadow-sm rounded-lg overflow-hidden text-sm">
+              <thead className="bg-gray-100 text-left text-gray-600 uppercase text-xs font-semibold tracking-wider">
                 <tr>
                   <th
-                    className="p-2 cursor-pointer select-none"
+                    className="p-3 cursor-pointer select-none"
                     onClick={() => setSortAsc(!sortAsc)}
                   >
                     Numero {sortAsc ? "▲" : "▼"}
                   </th>
-                  <th className="p-2">Indirizzo / Maps</th>
-                  <th className="p-2">Note</th>
-                  <th className="p-2">Azioni</th>
+                  <th className="p-3">Indirizzo / Maps</th>
+                  <th className="p-3 text-right">Azioni</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.map((o) => (
-                  <tr key={o.id} className="border-t">
-                    <td className="p-2">{o.code}</td>
-                    <td className="p-2">
+                  <tr
+                    key={o.id}
+                    className={`border-t hover:bg-gray-50 transition-colors cursor-pointer ${
+                      lastCreatedOrderId === o.id
+                        ? "bg-green-100 animate-pulse"
+                        : ""
+                    }`}
+                    onClick={() => navigate(`/backoffice/orders/${o.id}`)}
+                  >
+                    <td className="p-3">{o.code}</td>
+                    <td className="p-3">
                       {o.location.address ? (
                         o.location.address
                       ) : o.location.mapsUrl ? (
@@ -233,6 +249,7 @@ export default function CustomerDetail() {
                           href={o.location.mapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="text-blue-600 underline"
                         >
                           Apri in Maps
@@ -241,26 +258,27 @@ export default function CustomerDetail() {
                         "-"
                       )}
                     </td>
-                    <td className="p-2">{o.notes ?? "-"}</td>
-                    <td className="p-2 flex gap-2">
-                      <Link
-                        to={`/backoffice/orders/${o.id}`}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                    <td className="p-3 flex gap-2 justify-end">
+                      <button
+                        title="Modifica"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(o);
+                        }}
+                        className="p-2 rounded-lg hover:bg-yellow-100 text-yellow-600"
                       >
-                        Apri
-                      </Link>
-                      <Button
-                        onClick={() => handleEdit(o)}
-                        className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
+                        <Edit size={18} />
+                      </button>
+                      <button
+                        title="Elimina"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(o.id);
+                        }}
+                        className="p-2 rounded-lg hover:bg-red-100 text-red-600"
                       >
-                        ✏️
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(o.id)}
-                        className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                      >
-                        🗑️
-                      </Button>
+                        <Trash2 size={18} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -277,7 +295,12 @@ export default function CustomerDetail() {
             filteredOrders.map((o) => (
               <div
                 key={o.id}
-                className="border rounded-lg shadow-sm p-3 bg-white"
+                className={`border rounded-lg shadow-sm p-4 bg-white hover:bg-gray-50 transition cursor-pointer ${
+                  lastCreatedOrderId === o.id
+                    ? "bg-green-100 animate-pulse"
+                    : ""
+                }`}
+                onClick={() => navigate(`/backoffice/orders/${o.id}`)}
               >
                 <div className="font-bold text-lg">{o.code}</div>
                 <div className="text-sm text-gray-600 mt-1">
@@ -289,6 +312,7 @@ export default function CustomerDetail() {
                       href={o.location.mapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="text-blue-600 underline"
                     >
                       Apri in Maps
@@ -297,28 +321,25 @@ export default function CustomerDetail() {
                     "-"
                   )}
                 </div>
-                {o.notes && (
-                  <div className="text-sm mt-1 text-gray-700">📝 {o.notes}</div>
-                )}
                 <div className="flex gap-2 mt-3">
-                  <Link
-                    to={`/backoffice/orders/${o.id}`}
-                    className="flex-1 text-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(o);
+                    }}
+                    className="p-2 rounded-lg hover:bg-red-100 text-yellow-600"
                   >
-                    Apri
-                  </Link>
-                  <Button
-                    onClick={() => handleEdit(o)}
-                    className="flex-1 text-center px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
+                    <Edit size={18} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(o.id);
+                    }}
+                    className="p-2 rounded-lg hover:bg-red-100 text-red-600"
                   >
-                    ✏️
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(o.id)}
-                    className="flex-1 text-center px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                  >
-                    🗑️
-                  </Button>
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               </div>
             ))
