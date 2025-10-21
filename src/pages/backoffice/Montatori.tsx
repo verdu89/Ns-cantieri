@@ -4,6 +4,7 @@ import { supabase } from "../../supabaseClient";
 import type { Worker } from "../../types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import toast from "react-hot-toast";
+import { Edit, Trash2, Phone } from "lucide-react";
 
 interface WorkerRow extends Worker {
   user_id: string;
@@ -155,16 +156,16 @@ export default function MontatoriPage() {
   }
 
   return (
-    <main className="p-4 sm:p-6">
+    <main className="p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
-        <h1 className="text-xl sm:text-2xl font-bold">👷 Gestione Montatori</h1>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <h1 className="text-xl md:text-2xl font-bold">👷 Gestione Montatori</h1>
       </div>
 
       {/* Desktop: tabella */}
       <div className="hidden md:block bg-white shadow rounded-lg overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead className="bg-gray-100">
+        <table className="w-full border-collapse text-sm">
+          <thead className="bg-gray-100 text-gray-600 uppercase text-xs font-semibold tracking-wider">
             <tr>
               <th className="p-3 text-left">Nome</th>
               <th className="p-3 text-left">Email</th>
@@ -181,32 +182,45 @@ export default function MontatoriPage() {
               </tr>
             ) : montatori.length > 0 ? (
               montatori.map((m) => (
-                <tr key={m.id} className="border-b hover:bg-gray-50">
-                  <td className="p-3">{m.name}</td>
+                <tr
+                  key={m.id}
+                  className="border-t hover:bg-gray-50 transition-colors"
+                >
+                  <td className="p-3 font-medium">{m.name}</td>
                   <td className="p-3">{m.email}</td>
-                  <td className="p-3">{m.phone}</td>
-                  <td className="p-3 flex gap-2 justify-end">
-                    <Button
-                      onClick={() => openEditModal(m)}
-                      className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
-                    >
-                      ✏️ Modifica
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setSelected(m);
-                        setOpenConfirm(true);
-                      }}
-                      className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                    >
-                      🗑️ Elimina
-                    </Button>
+                  <td className="p-3 flex items-center gap-2 text-gray-700">
+                    <Phone size={16} className="opacity-70" />
+                    {m.phone || "-"}
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => openEditModal(m)}
+                        className="p-2 rounded-lg hover:bg-yellow-100 text-yellow-600"
+                        title="Modifica"
+                      >
+                        <Edit size={18} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelected(m);
+                          setOpenConfirm(true);
+                        }}
+                        className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                        title="Elimina"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="p-4 text-center text-gray-500">
+                <td
+                  colSpan={4}
+                  className="p-4 text-center text-gray-500 italic"
+                >
                   Nessun montatore presente
                 </td>
               </tr>
@@ -215,36 +229,51 @@ export default function MontatoriPage() {
         </table>
       </div>
 
-      {/* Mobile: cards */}
-      <div className="md:hidden space-y-3">
+      {/* Mobile: card compatte */}
+      <div className="md:hidden space-y-2">
         {loading ? (
           <div className="text-center text-gray-500">⏳ Caricamento…</div>
         ) : montatori.length > 0 ? (
           montatori.map((m) => (
             <div
               key={m.id}
-              className="bg-white border rounded-lg shadow-sm p-4"
+              className="bg-white border rounded-xl shadow-sm p-3 flex flex-col gap-1 active:bg-gray-100 hover:bg-gray-50 transition"
             >
-              <div className="font-bold text-lg">{m.name}</div>
-              <div className="text-sm text-gray-600">{m.email}</div>
-              <div className="text-sm text-gray-600">📞 {m.phone ?? "-"}</div>
+              {/* Nome */}
+              <div className="font-semibold text-sm">{m.name}</div>
 
-              <div className="flex gap-2 mt-3">
-                <Button
-                  onClick={() => openEditModal(m)}
-                  className="flex-1 text-center px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
+              {/* Email */}
+              <div className="text-xs text-gray-600">{m.email}</div>
+
+              {/* Telefono */}
+              <div className="text-xs text-gray-600 flex items-center gap-1">
+                <Phone size={13} className="opacity-70" />
+                {m.phone || "-"}
+              </div>
+
+              {/* Azioni */}
+              <div className="flex gap-1 mt-1 justify-end">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditModal(m);
+                  }}
+                  className="p-1 rounded-md hover:bg-yellow-100 text-yellow-600"
+                  title="Modifica"
                 >
-                  ✏️ Modifica
-                </Button>
-                <Button
-                  onClick={() => {
+                  <Edit size={15} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setSelected(m);
                     setOpenConfirm(true);
                   }}
-                  className="flex-1 text-center px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                  className="p-1 rounded-md hover:bg-red-100 text-red-600"
+                  title="Elimina"
                 >
-                  🗑️ Elimina
-                </Button>
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
           ))

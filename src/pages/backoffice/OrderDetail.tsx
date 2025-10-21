@@ -713,7 +713,7 @@ export default function OrderDetail() {
                       {(() => {
                         switch (j.title) {
                           case "consegna":
-                            return "📦 Consegna";
+                            return "🚚 Consegna";
                           case "montaggio":
                             return "🔧 Montaggio";
                           case "consegna_montaggio":
@@ -829,7 +829,7 @@ export default function OrderDetail() {
               className="w-full p-2 border rounded-lg mb-3"
             >
               <option value="">Seleziona tipo *</option>
-              <option value="consegna">📦 Consegna</option>
+              <option value="consegna">🚚 Consegna</option>
               <option value="montaggio">🔧 Montaggio</option>
               <option value="consegna_montaggio">
                 🚚🔧 Consegna + Montaggio
