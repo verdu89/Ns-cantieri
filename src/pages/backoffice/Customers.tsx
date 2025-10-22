@@ -1,14 +1,17 @@
 import { Button } from "@/components/ui/Button";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { customerAPI } from "../../api/customers";
 import type { Customer } from "../../types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "react-hot-toast";
+import { Edit, Trash2 } from "lucide-react"; // <== importa icone
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
+  const navigate = useNavigate(); // <== inizializza navigate
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<Partial<Customer>>({});
@@ -50,7 +53,15 @@ export default function Customers() {
         const created = await customerAPI.create(
           formData as Omit<Customer, "id">
         );
-        setCustomers([...customers, created]);
+
+        // Inserisci in cima alla lista
+        setCustomers([created, ...customers]);
+        setLastCreatedId(created.id);
+
+        // Rimuovi evidenziazione dopo 10s
+        setTimeout(() => {
+          setLastCreatedId(null);
+        }, 10000);
       }
 
       setFormData({});
@@ -94,9 +105,33 @@ export default function Customers() {
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(search.toLowerCase()))
     )
-    .sort((a, b) =>
-      sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-    );
+    .sort((a, b) => {
+      if (lastCreatedId === a.id) return -1; // nuovo in cima
+      if (lastCreatedId === b.id) return 1;
+      return sortAsc
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name);
+    });
+
+  // ✅ BLOCCO AVATAR INSERITO QUI
+  const getColorFromName = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 70%, 60%)`;
+  };
+
+  const AvatarCircle = ({ name }: { name: string }) => (
+    <div
+      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+      style={{ backgroundColor: getColorFromName(name) }}
+    >
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+  // ✅ FINE BLOCCO AVATAR
 
   if (loading) {
     return <div className="p-6 text-gray-600">⏳ Caricamento clienti...</div>;
@@ -130,54 +165,66 @@ export default function Customers() {
 
       {/* Desktop: tabella */}
       <div className="hidden md:block">
-        <table className="w-full border-collapse bg-white shadow rounded-lg overflow-hidden">
-          <thead className="bg-gray-100 text-left">
+        <table className="w-full border-collapse bg-white shadow-sm rounded-lg overflow-hidden text-sm">
+          <thead className="bg-gray-100 text-left text-gray-600 uppercase text-xs font-semibold tracking-wider">
             <tr>
               <th
-                className="p-2 cursor-pointer select-none"
+                className="p-3 cursor-pointer select-none"
                 onClick={() => setSortAsc(!sortAsc)}
               >
-                Nome {sortAsc ? "▲" : "▼"}
+                Cliente {sortAsc ? "▲" : "▼"}
               </th>
-              <th className="p-2">Telefono</th>
-              <th className="p-2">Email</th>
-              <th className="p-2">Note</th>
-              <th className="p-2">Azioni</th>
+              <th className="p-3">Contatti</th>
+              <th className="p-3">Note</th>
+              <th className="p-3 text-right">Azioni</th>
             </tr>
           </thead>
           <tbody>
             {filteredCustomers.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="p-2">{c.name}</td>
-                <td className="p-2">{c.phone ?? "-"}</td>
-                <td className="p-2">{c.email ?? "-"}</td>
-                <td className="p-2">{c.notes ?? "-"}</td>
-                <td className="p-2 flex gap-2">
-                  <Link
-                    to={`/backoffice/customers/${c.id}`}
-                    className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              <tr
+                key={c.id}
+                className={`border-t hover:bg-gray-50 transition-colors cursor-pointer ${
+                  lastCreatedId === c.id ? "bg-green-100 animate-pulse" : ""
+                }`}
+                onClick={() => navigate(`/backoffice/customers/${c.id}`)}
+              >
+                <td className="p-3 flex items-center gap-3">
+                  <AvatarCircle name={c.name} />
+                  <span className="font-medium">{c.name}</span>
+                </td>
+                <td className="p-3 text-gray-700">
+                  <div>📞 {c.phone ?? "-"}</div>
+                  <div>✉️ {c.email ?? "-"}</div>
+                </td>
+                <td className="p-3 text-gray-600">{c.notes ?? "-"}</td>
+                <td className="p-3 flex gap-2 justify-end">
+                  <button
+                    title="Modifica"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(c);
+                    }}
+                    className="p-2 rounded-lg hover:bg-yellow-100 text-yellow-600"
                   >
-                    Apri
-                  </Link>
-                  <Button
-                    onClick={() => handleEdit(c)}
-                    className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
+                    <Edit size={18} />
+                  </button>
+                  <button
+                    title="Elimina"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(c.id);
+                    }}
+                    className="p-2 rounded-lg hover:bg-red-100 text-red-600"
                   >
-                    ✏️
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(c.id)}
-                    className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                  >
-                    🗑️
-                  </Button>
+                    <Trash2 size={18} />
+                  </button>
                 </td>
               </tr>
             ))}
 
             {filteredCustomers.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center p-4 text-gray-500">
+                <td colSpan={4} className="text-center p-4 text-gray-500">
                   Nessun cliente trovato
                 </td>
               </tr>
@@ -187,35 +234,45 @@ export default function Customers() {
       </div>
 
       {/* Mobile: cards */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-2">
         {filteredCustomers.map((c) => (
-          <div key={c.id} className="border rounded-lg shadow-sm p-3 bg-white">
-            <div className="font-bold text-lg">{c.name}</div>
-            <div className="text-sm text-gray-600">
-              📞 {c.phone ?? "-"} | ✉️ {c.email ?? "-"}
+          <div
+            key={c.id}
+            className={`bg-white border rounded-xl p-3 flex items-center justify-between shadow-sm active:bg-gray-100 transition ${
+              lastCreatedId === c.id ? "bg-green-100 animate-pulse" : ""
+            }`}
+            onClick={() => navigate(`/backoffice/customers/${c.id}`)}
+          >
+            {/* Avatar + Info */}
+            <div className="flex items-center gap-3">
+              <AvatarCircle name={c.name} />
+              <div className="flex flex-col">
+                <span className="font-semibold">{c.name}</span>
+                <span className="text-xs text-gray-600">{c.phone ?? "-"}</span>
+                <span className="text-xs text-gray-600">{c.email ?? "-"}</span>
+              </div>
             </div>
-            {c.notes && (
-              <div className="text-sm mt-1 text-gray-700">📝 {c.notes}</div>
-            )}
-            <div className="flex gap-2 mt-3">
-              <Link
-                to={`/backoffice/customers/${c.id}`}
-                className="flex-1 text-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+
+            {/* Azioni */}
+            <div className="flex gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(c);
+                }}
+                className="p-1 rounded-md hover:bg-yellow-100 text-yellow-600"
               >
-                Apri
-              </Link>
-              <Button
-                onClick={() => handleEdit(c)}
-                className="flex-1 text-center px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
+                <Edit size={16} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(c.id);
+                }}
+                className="p-1 rounded-md hover:bg-red-100 text-red-600"
               >
-                ✏️
-              </Button>
-              <Button
-                onClick={() => handleDelete(c.id)}
-                className="flex-1 text-center px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-              >
-                🗑️
-              </Button>
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         ))}

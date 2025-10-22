@@ -1,156 +1,205 @@
 import { Button } from "@/components/ui/Button";
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { jobOrderAPI } from "../../api/jobOrders";
 import { customerAPI } from "../../api/customers";
 import { jobAPI } from "../../api/jobs";
 import type { JobOrder, Customer, Job } from "../../types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "react-hot-toast";
+import { Edit, Trash2 } from "lucide-react";
 
 export default function Orders() {
+  const navigate = useNavigate();
+
+  // Data
   const [orders, setOrders] = useState<JobOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
 
+  // Evidenziazione nuova commessa
+  const [lastCreatedOrderId, setLastCreatedOrderId] = useState<string | null>(
+    null
+  );
+
+  // Form modal
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<Partial<JobOrder>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Autocomplete cliente nel form
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
   const [customerSearch, setCustomerSearch] = useState("");
 
+  // Filtri lista
   const [searchCode, setSearchCode] = useState("");
-  const [searchCustomer, setSearchCustomer] = useState("");
+  const [searchCustomer, setSearchCustomer] = useState(""); // filtro select
   const [searchAddress, setSearchAddress] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
 
-  // stato per confirm dialog
+  // Conferma eliminazione
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
+  // Load iniziale
   useEffect(() => {
-    jobOrderAPI.list().then(setOrders);
-    customerAPI.list().then(setCustomers);
-    jobAPI.list().then(setJobs);
+    (async () => {
+      try {
+        const [o, c, j] = await Promise.all([
+          jobOrderAPI.list(),
+          customerAPI.list(),
+          jobAPI.list(),
+        ]);
+        setOrders(o);
+        setCustomers(c);
+        setJobs(j);
+      } catch (err) {
+        console.error("Errore caricamento dati:", err);
+        toast.error("Errore nel caricamento dati ❌");
+      }
+    })();
   }, []);
+
+  // Helpers
+  const getCustomerName = (id: string) =>
+    customers.find((c) => c.id === id)?.name ?? "N/D";
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     if (name === "address" || name === "mapsUrl") {
-      setFormData({
-        ...formData,
-        location: { ...formData.location, [name]: value },
-      });
+      setFormData((prev) => ({
+        ...prev,
+        location: { ...(prev.location ?? {}), [name]: value },
+      }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (
       !formData.code ||
       !selectedCustomer ||
       (!formData.location?.address && !formData.location?.mapsUrl)
     ) {
-      toast.error(
-        "Numero commessa, cliente e almeno un indirizzo o link Maps sono obbligatori ❌"
-      );
+      toast.error("Numero, cliente e indirizzo/Maps sono obbligatori ❌");
       return;
     }
 
-    if (editingId) {
-      setOrders(
-        orders.map((o) =>
-          o.id === editingId
-            ? {
-                ...o,
-                ...formData,
-                customerId: selectedCustomer,
-                id: editingId,
-                location: {
-                  address: formData.location?.address,
-                  mapsUrl: formData.location?.mapsUrl,
-                },
-              }
-            : o
-        )
-      );
-      toast.success("Commessa aggiornata ✅");
-    } else {
-      const newOrder: JobOrder = {
-        id: `o${Date.now()}`,
-        code: formData.code!,
-        customerId: selectedCustomer,
-        location: {
-          address: formData.location?.address,
-          mapsUrl: formData.location?.mapsUrl,
-        },
-        notes: formData.notes ?? "",
-        payments: [],
-        createdAt: new Date().toISOString(),
-      };
-      setOrders([...orders, newOrder]);
-      toast.success("Commessa creata ✅");
-    }
+    try {
+      if (editingId) {
+        const updated = await jobOrderAPI.update(editingId, {
+          code: formData.code,
+          customerId: selectedCustomer,
+          location: {
+            address: formData.location?.address ?? "",
+            mapsUrl: formData.location?.mapsUrl ?? "",
+          },
+          notes: formData.notes,
+          notesBackoffice: formData.notesBackoffice,
+        });
+        setOrders((prev) =>
+          prev.map((o) => (o.id === editingId ? updated : o))
+        );
+        toast.success("Commessa aggiornata ✅");
+      } else {
+        const created = await jobOrderAPI.create({
+          code: formData.code!,
+          customerId: selectedCustomer,
+          location: {
+            address: formData.location?.address ?? "",
+            mapsUrl: formData.location?.mapsUrl ?? "",
+          },
+          notes: formData.notes,
+          notesBackoffice: formData.notesBackoffice,
+          payments: [], // se il tipo lo prevede, altrimenti rimuovi
+        } as Omit<JobOrder, "id" | "createdAt">);
 
-    setFormData({});
-    setSelectedCustomer("");
-    setCustomerSearch("");
-    setEditingId(null);
-    setShowForm(false);
+        // in cima + evidenziazione verde per 10s
+        setOrders((prev) => [created, ...prev]);
+        setLastCreatedOrderId(created.id);
+        setTimeout(() => setLastCreatedOrderId(null), 10000);
+
+        toast.success("Commessa creata ✅");
+      }
+
+      // reset form
+      setFormData({});
+      setSelectedCustomer("");
+      setCustomerSearch("");
+      setEditingId(null);
+      setShowForm(false);
+    } catch (err) {
+      console.error("Errore salvataggio commessa:", err);
+      toast.error("Errore durante il salvataggio ❌");
+    }
   };
 
   const handleEdit = (order: JobOrder) => {
     setFormData(order);
     setSelectedCustomer(order.customerId);
-    setCustomerSearch(
-      customers.find((c) => c.id === order.customerId)?.name ?? ""
-    );
+    setCustomerSearch(getCustomerName(order.customerId));
     setEditingId(order.id);
     setShowForm(true);
   };
 
   const handleDelete = (id: string) => {
-    const hasJobs = jobs.some((j: Job) => j.jobOrderId === id);
+    const hasJobs = jobs.some((j) => j.jobOrderId === id);
     if (hasJobs) {
-      toast.error(
-        "Non puoi eliminare questa commessa perché ha interventi collegati ❌"
-      );
+      toast.error("Non puoi eliminare la commessa: ha interventi collegati ❌");
       return;
     }
     setSelectedOrderId(id);
     setOpenConfirm(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!selectedOrderId) return;
-    setOrders(orders.filter((o) => o.id !== selectedOrderId));
-    toast.success("Commessa eliminata ✅");
-    setSelectedOrderId(null);
+    try {
+      await jobOrderAPI.remove(selectedOrderId);
+      setOrders((prev) => prev.filter((o) => o.id !== selectedOrderId));
+      toast.success("Commessa eliminata ✅");
+    } catch (err) {
+      console.error("Errore eliminazione commessa:", err);
+      toast.error("Errore durante l'eliminazione ❌");
+    } finally {
+      setSelectedOrderId(null);
+    }
   };
 
-  const getCustomerName = (id: string) =>
-    customers.find((c: Customer) => c.id === id)?.name ?? "N/D";
-
-  const filteredOrders = orders
-    .filter((o) => o.code.toLowerCase().includes(searchCode.toLowerCase()))
-    .filter((o) => (searchCustomer ? o.customerId === searchCustomer : true))
-    .filter((o) =>
-      (o.location.address ?? "")
-        .toLowerCase()
-        .includes(searchAddress.toLowerCase())
-    )
-    .sort((a, b) =>
-      sortAsc ? a.code.localeCompare(b.code) : b.code.localeCompare(a.code)
-    );
+  // Lista filtrata + sort (manteniamo in cima l'ultima creata)
+  const filteredOrders = useMemo(() => {
+    return orders
+      .filter((o) => o.code.toLowerCase().includes(searchCode.toLowerCase()))
+      .filter((o) => (searchCustomer ? o.customerId === searchCustomer : true))
+      .filter((o) =>
+        (o.location.address ?? "")
+          .toLowerCase()
+          .includes(searchAddress.toLowerCase())
+      )
+      .sort((a, b) => {
+        if (lastCreatedOrderId === a.id) return -1;
+        if (lastCreatedOrderId === b.id) return 1;
+        return sortAsc
+          ? a.code.localeCompare(b.code)
+          : b.code.localeCompare(a.code);
+      });
+  }, [
+    orders,
+    searchCode,
+    searchCustomer,
+    searchAddress,
+    sortAsc,
+    lastCreatedOrderId,
+  ]);
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-        <h1 className="text-lg sm:text-xl font-bold">Commesse</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h1 className="text-xl font-bold">Commesse</h1>
         <Button
           onClick={() => {
             setFormData({});
@@ -166,7 +215,7 @@ export default function Orders() {
       </div>
 
       {/* Filtri */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         <input
           type="text"
           placeholder="🔍 Cerca per numero"
@@ -195,140 +244,145 @@ export default function Orders() {
         />
       </div>
 
-      {/* Tabella desktop */}
+      {/* Desktop: tabella */}
       <div className="hidden md:block">
-        <table className="w-full border-collapse bg-white shadow rounded-lg overflow-hidden">
-          <thead className="bg-gray-100 text-left">
-            <tr>
-              <th
-                className="p-2 cursor-pointer select-none"
-                onClick={() => setSortAsc(!sortAsc)}
-              >
-                Numero {sortAsc ? "▲" : "▼"}
-              </th>
-              <th className="p-2">Cliente</th>
-              <th className="p-2">Indirizzo / Maps</th>
-              <th className="p-2">Note</th>
-              <th className="p-2">Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.map((o) => (
-              <tr key={o.id} className="border-t">
-                <td className="p-2">{o.code}</td>
-                <td className="p-2">{getCustomerName(o.customerId)}</td>
-                <td className="p-2">
-                  {o.location.address ? (
-                    o.location.address
-                  ) : o.location.mapsUrl ? (
-                    <a
-                      href={o.location.mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline"
-                    >
-                      Apri in Maps
-                    </a>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td className="p-2">{o.notes ?? "-"}</td>
-                <td className="p-2 flex gap-2">
-                  <Link
-                    to={`/backoffice/orders/${o.id}`}
-                    className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                  >
-                    Apri
-                  </Link>
-                  <Button
-                    onClick={() => handleEdit(o)}
-                    className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
-                  >
-                    ✏️
-                  </Button>
-                  <Button
-                    onClick={() => handleDelete(o.id)}
-                    className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                  >
-                    🗑️
-                  </Button>
-                </td>
-              </tr>
-            ))}
-
-            {filteredOrders.length === 0 && (
+        {filteredOrders.length === 0 ? (
+          <p className="text-gray-500">Nessuna commessa trovata</p>
+        ) : (
+          <table className="w-full border-collapse bg-white shadow-sm rounded-lg overflow-hidden text-sm">
+            <thead className="bg-gray-100 text-left text-gray-600 uppercase text-xs font-semibold tracking-wider">
               <tr>
-                <td colSpan={5} className="text-center p-4 text-gray-500">
-                  Nessuna commessa trovata
-                </td>
+                <th
+                  className="p-3 cursor-pointer select-none"
+                  onClick={() => setSortAsc(!sortAsc)}
+                >
+                  Numero {sortAsc ? "▲" : "▼"}
+                </th>
+                <th className="p-3">Cliente</th>
+                <th className="p-3">Indirizzo / Maps</th>
+                <th className="p-3 text-right">Azioni</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredOrders.map((o) => (
+                <tr
+                  key={o.id}
+                  className={`border-t hover:bg-gray-50 transition-colors cursor-pointer ${
+                    lastCreatedOrderId === o.id
+                      ? "bg-green-100 animate-pulse"
+                      : ""
+                  }`}
+                  onClick={() => navigate(`/backoffice/orders/${o.id}`)}
+                >
+                  <td className="p-3">{o.code}</td>
+                  <td className="p-3">{getCustomerName(o.customerId)}</td>
+                  <td className="p-3">
+                    {o.location.address ? (
+                      o.location.address
+                    ) : o.location.mapsUrl ? (
+                      <a
+                        href={o.location.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-blue-600 underline"
+                      >
+                        Apri in Maps
+                      </a>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td className="p-3 flex gap-2 justify-end">
+                    <button
+                      title="Modifica"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(o);
+                      }}
+                      className="p-2 rounded-lg hover:bg-yellow-100 text-yellow-600"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button
+                      title="Elimina"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(o.id);
+                      }}
+                      className="p-2 rounded-lg hover:bg-red-100 text-red-600"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      {/* Card mobile */}
-      <div className="space-y-4 md:hidden">
-        {filteredOrders.map((o) => (
-          <div
-            key={o.id}
-            className="bg-white shadow rounded-lg p-4 border border-gray-200"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="font-bold">{o.code}</h2>
-              <div className="flex gap-2">
-                <Link
-                  to={`/backoffice/orders/${o.id}`}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+      {/* Mobile: cards compatte = stile rubrica */}
+      <div className="md:hidden space-y-2">
+        {filteredOrders.length === 0 ? (
+          <p className="text-gray-500">Nessuna commessa trovata</p>
+        ) : (
+          filteredOrders.map((o) => (
+            <div
+              key={o.id}
+              className={`bg-white border rounded-xl p-3 shadow-sm active:bg-gray-100 transition cursor-pointer ${
+                lastCreatedOrderId === o.id ? "bg-green-100 animate-pulse" : ""
+              }`}
+              onClick={() => navigate(`/backoffice/orders/${o.id}`)}
+            >
+              {/* Codice commessa */}
+              <div className="font-semibold text-sm">{o.code}</div>
+
+              {/* Cliente */}
+              <div className="text-gray-600 text-xs mt-0.5">
+                👤 {getCustomerName(o.customerId)}
+              </div>
+
+              {/* Indirizzo */}
+              <div className="text-gray-500 text-xs mt-0.5">
+                📍{" "}
+                {o.location.address
+                  ? o.location.address
+                  : o.location.mapsUrl
+                  ? "Apri in Maps"
+                  : "-"}
+              </div>
+
+              {/* Note */}
+              {o.notes && (
+                <div className="text-gray-500 text-xs mt-0.5 truncate">
+                  📝 {o.notes}
+                </div>
+              )}
+
+              {/* Azioni */}
+              <div className="flex gap-2 justify-end mt-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(o);
+                  }}
+                  className="p-1 rounded-md hover:bg-yellow-100 text-yellow-600"
                 >
-                  Apri
-                </Link>
-                <Button
-                  onClick={() => handleEdit(o)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
+                  <Edit size={16} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(o.id);
+                  }}
+                  className="p-1 rounded-md hover:bg-red-100 text-red-600"
                 >
-                  ✏️
-                </Button>
-                <Button
-                  onClick={() => handleDelete(o.id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                >
-                  🗑️
-                </Button>
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
-            <div className="text-sm text-gray-700">
-              <p>
-                <span className="font-semibold">Cliente:</span>{" "}
-                {getCustomerName(o.customerId)}
-              </p>
-              <p>
-                <span className="font-semibold">Indirizzo:</span>{" "}
-                {o.location.address ? (
-                  o.location.address
-                ) : o.location.mapsUrl ? (
-                  <a
-                    href={o.location.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    Apri in Maps
-                  </a>
-                ) : (
-                  "-"
-                )}
-              </p>
-              <p>
-                <span className="font-semibold">Note:</span> {o.notes ?? "-"}
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {filteredOrders.length === 0 && (
-          <p className="text-center text-gray-500">Nessuna commessa trovata</p>
+          ))
         )}
       </div>
 
@@ -349,7 +403,7 @@ export default function Orders() {
               className="w-full p-2 border rounded-lg mb-2"
             />
 
-            {/* Cliente (autocomplete) */}
+            {/* Cliente (autocomplete semplice, solo nome) */}
             <div className="mb-2 relative">
               <input
                 type="text"
@@ -367,7 +421,7 @@ export default function Orders() {
                 className="w-full p-2 border rounded-lg"
               />
               {customerSearch && !selectedCustomer && (
-                <ul className="absolute z-10 bg-white border rounded-lg w-full shadow max-h-40 overflow-y-auto">
+                <ul className="absolute z-10 bg-white border rounded-lg w-full shadow max-h-48 overflow-y-auto">
                   {customers
                     .filter((c) =>
                       c.name
@@ -382,12 +436,9 @@ export default function Orders() {
                           setSelectedCustomer(c.id);
                           setCustomerSearch(c.name);
                         }}
-                        className="px-2 py-1 cursor-pointer hover:bg-blue-100"
+                        className="px-2 py-2 cursor-pointer hover:bg-blue-50"
                       >
-                        <div className="font-semibold">{c.name}</div>
-                        <div className="text-sm text-gray-500">
-                          {c.address ?? "Indirizzo non disponibile"}
-                        </div>
+                        <div className="font-medium">{c.name}</div>
                       </li>
                     ))}
                 </ul>
@@ -422,7 +473,13 @@ export default function Orders() {
 
             <div className="flex justify-end gap-2 mt-3">
               <Button
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setFormData({});
+                  setSelectedCustomer("");
+                  setCustomerSearch("");
+                  setEditingId(null);
+                }}
                 className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
               >
                 Annulla
